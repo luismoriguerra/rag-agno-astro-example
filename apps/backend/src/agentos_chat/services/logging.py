@@ -39,3 +39,19 @@ def trace_run_stopped(run_id: str) -> None:
 
 def trace_run_failed(run_id: str, code: str, message: str) -> None:
     log_event("run_failed", run_id=run_id, code=code, message=message)
+
+
+def log_langwatch_disabled() -> None:
+    log_event("langwatch_disabled")
+
+
+def log_langwatch_enabled(environment: str) -> None:
+    log_event("langwatch_enabled", environment=environment)
+
+
+def log_langwatch_setup_failed(message: str) -> None:
+    log_event("langwatch_setup_failed", message=message)
+
+
+def log_langwatch_export_failed(run_id: str, message: str) -> None:
+    log_event("langwatch_export_failed", run_id=run_id, message=message)

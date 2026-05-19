@@ -1,19 +1,46 @@
 #!/usr/bin/env python3
-"""Smoke test for local or deployed chat stack."""
+"""Smoke test for the local or deployed app stack.
+
+Reads service names and paths from environment variables that the Makefile
+populates from ``infra/railway/project.env``.
+"""
 
 from __future__ import annotations
 
 import argparse
+import json
 import os
+import subprocess
 import sys
 import urllib.error
 import urllib.request
 
 
+def railway_url(path: str, service: str) -> str | None:
+    try:
+        out = subprocess.check_output(
+            ["railway", "domain", "--service", service, "--json"],
+            text=True,
+            stderr=subprocess.DEVNULL,
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None
+
+    data = json.loads(out)
+    domains = data.get("domains") or []
+    if not domains:
+        return None
+    base = domains[0].rstrip("/")
+    if not base.startswith("http"):
+        base = f"https://{base}"
+    return f"{base}{path}"
+
+
 def check(url: str) -> bool:
     try:
-        with urllib.request.urlopen(url, timeout=10) as response:
-            return 200 <= response.status < 300
+        with urllib.request.urlopen(url, timeout=15) as response:
+            body = response.read(512).decode("utf-8", errors="replace")
+            return 200 <= response.status < 300 and "Index of" not in body
     except urllib.error.URLError:
         return False
 
@@ -23,14 +50,27 @@ def main() -> int:
     parser.add_argument("--local", action="store_true")
     args = parser.parse_args()
 
+    backend_path = os.getenv("SMOKE_BACKEND_PATH", "/health")
+    frontend_path = os.getenv("SMOKE_FRONTEND_PATH", "/")
+
     if args.local:
-        backend = os.getenv("BACKEND_URL", "http://localhost:8000/health")
-        frontend = os.getenv("FRONTEND_URL", "http://localhost:4321/chat")
+        backend = os.getenv("BACKEND_URL", f"http://localhost:8000{backend_path}")
+        frontend = os.getenv("FRONTEND_URL", f"http://localhost:4321{frontend_path}")
     else:
-        backend = os.getenv("BACKEND_URL", "")
-        frontend = os.getenv("FRONTEND_URL", "")
+        backend_service = os.getenv("RAILWAY_BACKEND_SERVICE")
+        frontend_service = os.getenv("RAILWAY_FRONTEND_SERVICE")
+        backend = os.getenv("BACKEND_URL") or (
+            railway_url(backend_path, backend_service) if backend_service else None
+        )
+        frontend = os.getenv("FRONTEND_URL") or (
+            railway_url(frontend_path, frontend_service) if frontend_service else None
+        )
         if not backend or not frontend:
-            print("Set BACKEND_URL and FRONTEND_URL for deployed smoke test.", file=sys.stderr)
+            print(
+                "Set BACKEND_URL and FRONTEND_URL, or run via `make railway-smoke` "
+                "so RAILWAY_BACKEND_SERVICE / RAILWAY_FRONTEND_SERVICE are exported.",
+                file=sys.stderr,
+            )
             return 1
 
     ok_backend = check(backend)

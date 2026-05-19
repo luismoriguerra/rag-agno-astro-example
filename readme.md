@@ -29,3 +29,5 @@ make dev
 | `make railway-up` | Provision Railway services (local CLI) |
 
 See [specs/001-agentos-chat-search/quickstart.md](specs/001-agentos-chat-search/quickstart.md) for full verification and deployment steps.
+
+Optional LangWatch agent tracing: [specs/002-langwatch-backend/quickstart.md](specs/002-langwatch-backend/quickstart.md).

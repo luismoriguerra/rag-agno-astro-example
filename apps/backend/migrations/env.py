@@ -7,6 +7,7 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from agentos_chat.db.models import Base
+from agentos_chat.db.session import database_connect_args
 from agentos_chat.settings import get_settings
 
 config = context.config
@@ -39,12 +40,14 @@ def do_run_migrations(connection: Connection) -> None:
 
 
 async def run_async_migrations() -> None:
+    url = get_url()
     configuration = config.get_section(config.config_ini_section) or {}
-    configuration["sqlalchemy.url"] = get_url()
+    configuration["sqlalchemy.url"] = url
     connectable = async_engine_from_config(
         configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        connect_args=database_connect_args(url),
     )
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)

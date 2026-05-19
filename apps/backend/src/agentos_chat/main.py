@@ -1,3 +1,4 @@
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -6,13 +7,15 @@ from fastapi.responses import JSONResponse
 
 from agentos_chat.api import messages, runs, sessions, stream
 from agentos_chat.models.schemas import HealthResponse
+from agentos_chat.observability.langwatch import configure_langwatch
 from agentos_chat.services.logging import configure_logging
 from agentos_chat.settings import get_settings
 
 
 @asynccontextmanager
-async def lifespan(_app: FastAPI):
+async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     configure_logging()
+    configure_langwatch()
     yield
 
 
