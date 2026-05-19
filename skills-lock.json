@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "skills": {
+    "agno": {
+      "source": "delorenj/skills",
+      "sourceType": "github",
+      "skillPath": "agno/SKILL.md",
+      "computedHash": "0aa0558e57cf225fc22cb24c447e23fdf0852c68f109be0d13fa266eb7ede96b"
+    },
+    "ai-sdk": {
+      "source": "vercel/ai",
+      "sourceType": "github",
+      "skillPath": "skills/use-ai-sdk/SKILL.md",
+      "computedHash": "2249889eb47ef0f61c4dba4cf2afe01c1c8dd793bb4c24230347c1ab909bb7dd"
+    },
+    "astro": {
+      "source": "astrolicious/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/astro/SKILL.md",
+      "computedHash": "ebefe26b231d32379c14e41a46c2de7b4b0184543bedab7febdabe4fb21fba4e"
+    },
+    "auth0-quickstart": {
+      "source": "auth0/agent-skills",
+      "sourceType": "github",
+      "skillPath": "plugins/auth0/skills/auth0-quickstart/SKILL.md",
+      "computedHash": "68aef7a6e0fd01feb848cb452a505dd24bb3993a08c4d265e91a541e79204a02"
+    },
+    "clean-code": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "skillPath": "skills/clean-code/SKILL.md",
+      "computedHash": "74bf6ded4f61ddcb593e7a29beb96c284f888cbe0639ad6e23710447c36ff19a"
+    },
+    "create-agent": {
+      "source": "openrouterteam/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/create-agent/SKILL.md",
+      "computedHash": "7232cfa7d012008bf12fa33815af49db10e7ddd5549c75c501168875a5334e11"
+    },
+    "docker-expert": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "skillPath": "skills/docker-expert/SKILL.md",
+      "computedHash": "0974b5f64fcd284c1bd662810e2388f7beb9be6784c597de4d0ad4213ccbd6af"
+    },
+    "fastapi": {
+      "source": "fastapi/fastapi",
+      "sourceType": "github",
+      "skillPath": "fastapi/.agents/skills/fastapi/SKILL.md",
+      "computedHash": "ee23d5285caf055cf164ff45dd34888d381143564666baacab8aa786f22e413a"
+    },
+    "openrouter-typescript-sdk": {
+      "source": "openrouterteam/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/typescript-sdk/SKILL.md",
+      "computedHash": "0cb0e2f07f6b42fb8974c2ee89ca3ba3a103dfe565f12bc7ca9f41945fc7227a"
+    },
+    "pgvector-semantic-search": {
+      "source": "timescale/pg-aiguide",
+      "sourceType": "github",
+      "skillPath": "skills/pgvector-semantic-search/SKILL.md",
+      "computedHash": "ea00b6af03fd3565dca37b282de9b786bd00711db190b671e6e729d9d9972622"
+    },
+    "supabase-postgres-best-practices": {
+      "source": "supabase/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/supabase-postgres-best-practices/SKILL.md",
+      "computedHash": "d606a1146be6d54fb9e73f718b5320b9acac5ff2ba2d7230a555df4b5a923b4a"
+    },
+    "use-railway": {
+      "source": "railwayapp/railway-skills",
+      "sourceType": "github",
+      "skillPath": "plugins/railway/skills/use-railway/SKILL.md",
+      "computedHash": "1588856eb874891ee51ecc5584dc79cdd19c32f99e097f40fe60a03a9a94a9d1"
+    }
+  }
+}
