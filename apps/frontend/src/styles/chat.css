@@ -1,0 +1,126 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #0f1419;
+  color: #e7ecf3;
+}
+
+main {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.chat-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 90vh;
+}
+
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.chat-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+button {
+  border: 1px solid #3a4a5c;
+  background: #1b2733;
+  color: inherit;
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chat-transcript {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid #2a3644;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  background: #121a22;
+}
+
+.chat-message {
+  margin-bottom: 1rem;
+}
+
+.chat-message-user strong {
+  color: #8ec5ff;
+}
+
+.chat-message-assistant strong {
+  color: #9be7b3;
+}
+
+.chat-sources {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.chat-sources a {
+  color: #8ec5ff;
+}
+
+.chat-status,
+.chat-muted {
+  color: #9aa8b8;
+  font-style: italic;
+}
+
+.chat-error {
+  color: #ff8f8f;
+  margin: 0;
+}
+
+.chat-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+textarea {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid #2a3644;
+  background: #121a22;
+  color: inherit;
+  padding: 0.75rem;
+  resize: vertical;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto !important;
+    transition: none !important;
+    animation: none !important;
+  }
+}
