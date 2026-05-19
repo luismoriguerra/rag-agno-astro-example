@@ -14,7 +14,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+/lib/
 lib64/
 parts/
 sdist/
@@ -229,3 +229,9 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 *.env
+
+# Auth0 Terraform (secrets and provider cache)
+infra/auth0-terraform/.terraform/
+infra/auth0-terraform/terraform.tfvars
+infra/auth0-terraform/*.tfstate
+infra/auth0-terraform/*.tfstate.*

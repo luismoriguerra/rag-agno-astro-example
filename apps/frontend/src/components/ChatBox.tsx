@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ChatMessage, ChatSessionDetail, ChatUiState, SearchSource } from "../services/chatTypes";
+import { AuthApiError } from "../lib/auth0";
 import {
   createSession,
   deleteSession,
   getSession,
+  logoutRedirectUrl,
   restoreActiveSession,
   stopRun,
   streamRun,
@@ -22,6 +24,17 @@ function emptyAssistant(): ChatMessage {
   };
 }
 
+function readAuthErrorFromUrl(): string | null {
+  if (typeof window === "undefined") return null;
+  const params = new URLSearchParams(window.location.search);
+  const authError = params.get("auth_error");
+  if (!authError) return null;
+  params.delete("auth_error");
+  const next = `${window.location.pathname}${params.toString() ? `?${params}` : ""}`;
+  window.history.replaceState({}, "", next);
+  return authError;
+}
+
 export default function ChatBox() {
   const [uiState, setUiState] = useState<ChatUiState>("restoring");
   const [session, setSession] = useState<ChatSessionDetail | null>(null);
@@ -33,7 +46,25 @@ export default function ChatBox() {
   const stopStreamRef = useRef<(() => void) | null>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
 
+  const handleAuthError = useCallback((err: unknown) => {
+    if (err instanceof AuthApiError) {
+      setError(err.message);
+    } else if (err instanceof Error) {
+      setError(err.message);
+    } else {
+      setError("Unable to access your data. Sign in again or contact support.");
+    }
+    setUiState("failed");
+  }, []);
+
   useEffect(() => {
+    const urlError = readAuthErrorFromUrl();
+    if (urlError) {
+      setError(urlError);
+      setUiState("failed");
+      return;
+    }
+
     void (async () => {
       try {
         const detail = await restoreActiveSession();
@@ -41,11 +72,10 @@ export default function ChatBox() {
         setMessages(detail.messages);
         setUiState(detail.messages.length ? "ready" : "empty");
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed to restore chat.");
-        setUiState("failed");
+        handleAuthError(e);
       }
     })();
-  }, []);
+  }, [handleAuthError]);
 
   useEffect(() => {
     transcriptRef.current?.scrollTo({ top: transcriptRef.current.scrollHeight });
@@ -133,8 +163,7 @@ export default function ChatBox() {
       setUiState("thinking");
     } catch (e) {
       setDraft(content);
-      setError(e instanceof Error ? e.message : "Failed to send message.");
-      setUiState("failed");
+      handleAuthError(e);
     }
   };
 
@@ -149,8 +178,7 @@ export default function ChatBox() {
       setMessages([]);
       setUiState("empty");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to start new chat.");
-      setUiState("failed");
+      handleAuthError(e);
     }
   };
 
@@ -166,8 +194,7 @@ export default function ChatBox() {
       setMessages(detail.messages);
       setUiState(detail.messages.length ? "ready" : "empty");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to delete session.");
-      setUiState("failed");
+      handleAuthError(e);
     }
   };
 
@@ -177,8 +204,12 @@ export default function ChatBox() {
     try {
       await stopRun(activeRunId);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to stop response.");
+      handleAuthError(e);
     }
+  };
+
+  const handleSignOut = () => {
+    window.location.href = logoutRedirectUrl();
   };
 
   const busy =
@@ -186,6 +217,12 @@ export default function ChatBox() {
     uiState === "thinking" ||
     uiState === "streaming" ||
     uiState === "stopping";
+
+  const showSignIn =
+    error &&
+    (error.includes("Sign in") ||
+      error.includes("session expired") ||
+      error.includes("expired"));
 
   return (
     <div className="chat-shell">
@@ -209,12 +246,21 @@ export default function ChatBox() {
           >
             Delete active session
           </button>
+          <button type="button" onClick={handleSignOut}>
+            Sign out
+          </button>
         </div>
       </header>
 
       {error && (
         <p role="alert" className="chat-error">
           {error}
+          {showSignIn && (
+            <>
+              {" "}
+              <a href="/api/auth/login">Sign in again</a>
+            </>
+          )}
         </p>
       )}
 

@@ -1,0 +1,23 @@
+auth0_domain                    = "your-tenant.us.auth0.com"
+auth0_terraform_client_id       = "terraform-m2m-client-id"
+auth0_terraform_client_secret   = "terraform-m2m-client-secret"
+api_identifier                  = "https://web0personal-vector-api.local"
+callback_urls                   = [
+  "http://localhost:4321/api/auth/callback",
+  "https://your-frontend.up.railway.app/api/auth/callback",
+]
+logout_urls                     = [
+  "http://localhost:4321",
+  "https://your-frontend.up.railway.app",
+]
+web_origins                     = [
+  "http://localhost:4321",
+  "https://your-frontend.up.railway.app",
+]
+allowed_emails                  = ["luismoridev@gmail.com"]
+
+# Google: use existing tenant connection (default). Enable SPA on Google in dashboard after apply.
+manage_google_connection        = false
+# manage_google_connection      = true   # greenfield only
+# google_client_id              = "..."
+# google_client_secret          = "..."

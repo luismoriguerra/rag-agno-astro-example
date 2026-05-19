@@ -11,6 +11,8 @@ Auto-generated from all feature plans. Last updated: 2026-05-18
 ## Active Technologies
 - Python 3.12 + FastAPI, Agno, `langwatch`, `openinference-instrumentation-agno` (new); (002-langwatch-backend)
 - N/A (no schema changes; traces stored in LangWatch) (002-langwatch-backend)
+- Python 3.12 (backend); Node.js 22 + TypeScript 5.x (frontend) + FastAPI, Agno (`JWTMiddleware`), Auth0 Terraform provider (`auth0/auth0`), (003-auth0-integration)
+- PostgreSQL unchanged; Auth0 tenant for identity; no mock→Auth0 data migration (003-auth0-integration)
 
 - Python 3.12 for backend; Node.js 22 and TypeScript 5.x for frontend + FastAPI, Agno/AgentOS, Agno DuckDuckGoTools, Pydantic, PostgreSQL (001-agentos-chat-search)
 
@@ -50,6 +52,7 @@ specs/
 - Deployment: local-first Makefile commands for Railway; no GitHub Actions in this release.
 
 ## Recent Changes
+- 003-auth0-integration: Added Python 3.12 (backend); Node.js 22 + TypeScript 5.x (frontend) + FastAPI, Agno (`JWTMiddleware`), Auth0 Terraform provider (`auth0/auth0`),
 - 002-langwatch-backend: Added Python 3.12 + FastAPI, Agno, `langwatch`, `openinference-instrumentation-agno` (new);
 
 - 001-agentos-chat-search: Added Python 3.12 for backend; Node.js 22 and TypeScript 5.x for frontend + FastAPI, Agno/AgentOS, Agno DuckDuckGoTools, Pydantic, PostgreSQL
