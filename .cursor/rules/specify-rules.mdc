@@ -1,0 +1,55 @@
+---
+description: Project Development Guidelines
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# web0personal-vector Development Guidelines
+
+Auto-generated from all feature plans. Last updated: 2026-05-18
+
+## Active Technologies
+
+- Python 3.12 for backend; Node.js 22 and TypeScript 5.x for frontend + FastAPI, Agno/AgentOS, Agno DuckDuckGoTools, Pydantic, PostgreSQL (001-agentos-chat-search)
+
+## Project Structure
+
+```text
+apps/
+├── backend/
+│   ├── src/agentos_chat/
+│   ├── migrations/
+│   └── tests/
+└── frontend/
+    ├── src/
+    └── tests/
+
+infra/
+└── railway/
+
+specs/
+└── 001-agentos-chat-search/
+```
+
+## Commands
+
+- `make install` - install backend and frontend dependencies
+- `make dev` - run backend and frontend locally
+- `make check` - run static checks
+- `make test` - run backend/frontend tests
+- `make railway-deploy` - deploy via local Railway commands
+
+## Code Style
+
+- Backend: Python 3.12, FastAPI, Pydantic, Agno/AgentOS, PostgreSQL. Prefer typed FastAPI routes,
+  dependency-injected mocked/Auth0-compatible identity, and owner-filtered data access.
+- Frontend: Node.js 22, TypeScript 5.x, Astro. Keep interactivity localized to the `/chat` UI and
+  avoid exposing raw hidden reasoning in thinking/progress states.
+- Deployment: local-first Makefile commands for Railway; no GitHub Actions in this release.
+
+## Recent Changes
+
+- 001-agentos-chat-search: Added Python 3.12 for backend; Node.js 22 and TypeScript 5.x for frontend + FastAPI, Agno/AgentOS, Agno DuckDuckGoTools, Pydantic, PostgreSQL
+
+<!-- MANUAL ADDITIONS START -->
+<!-- MANUAL ADDITIONS END -->
