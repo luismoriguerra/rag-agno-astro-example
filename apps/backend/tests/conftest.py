@@ -1,6 +1,14 @@
 import os
-from collections.abc import AsyncGenerator
 
+# JWT test mode must be set before importing the FastAPI app (middleware registration).
+os.environ.setdefault("AUTH0_JWT_TEST_MODE", "true")
+os.environ.setdefault("AUTH0_API_AUDIENCE", "test-audience")
+os.environ.setdefault("APP_ENVIRONMENT", "test")
+
+from collections.abc import AsyncGenerator
+from datetime import UTC, datetime, timedelta
+
+import jwt
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
@@ -14,6 +22,31 @@ TEST_DATABASE_URL = os.getenv(
     "TEST_DATABASE_URL",
     "postgresql+asyncpg://postgres:postgres@localhost:5432/agentos_chat_test",
 )
+
+TEST_JWT_SECRET = os.getenv(
+    "AUTH0_JWT_TEST_SECRET",
+    "test-jwt-secret-at-least-32-characters-long",
+)
+TEST_AUDIENCE = os.getenv("AUTH0_API_AUDIENCE", "test-audience")
+
+
+def make_test_jwt(
+    *,
+    sub: str = "auth0|test-user",
+    scope: str = "access:api",
+    audience: str = TEST_AUDIENCE,
+    secret: str = TEST_JWT_SECRET,
+    expires_in_hours: int = 1,
+) -> str:
+    now = datetime.now(UTC)
+    payload = {
+        "sub": sub,
+        "scope": scope,
+        "aud": audience,
+        "exp": now + timedelta(hours=expires_in_hours),
+        "iat": now,
+    }
+    return jwt.encode(payload, secret, algorithm="HS256")
 
 
 @pytest_asyncio.fixture
@@ -47,5 +80,18 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
 
 
 @pytest.fixture
-def mock_headers() -> dict[str, str]:
-    return {"X-Mock-Identity": "mock|test-user"}
+def auth_headers() -> dict[str, str]:
+    token = make_test_jwt()
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+def auth_headers_no_scope() -> dict[str, str]:
+    token = make_test_jwt(scope="")
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+def mock_headers(auth_headers: dict[str, str]) -> dict[str, str]:
+    """Backward-compatible alias for contract tests."""
+    return auth_headers

@@ -55,3 +55,13 @@ def log_langwatch_setup_failed(message: str) -> None:
 
 def log_langwatch_export_failed(run_id: str, message: str) -> None:
     log_event("langwatch_export_failed", run_id=run_id, message=message)
+
+
+def log_auth_failure(*, status_code: int, code: str, path: str) -> None:
+    """Structured auth failure log without token contents."""
+    log_event(
+        "auth_failure",
+        status_code=status_code,
+        code=code,
+        path=path,
+    )

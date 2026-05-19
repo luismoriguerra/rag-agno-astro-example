@@ -36,11 +36,29 @@ def railway_url(path: str, service: str) -> str | None:
     return f"{base}{path}"
 
 
-def check(url: str) -> bool:
+def check_backend(url: str) -> bool:
     try:
         with urllib.request.urlopen(url, timeout=15) as response:
             body = response.read(512).decode("utf-8", errors="replace")
             return 200 <= response.status < 300 and "Index of" not in body
+    except urllib.error.URLError:
+        return False
+
+
+def check_frontend(url: str) -> bool:
+    """Accept 2xx or auth redirect (302/307) for unauthenticated protected pages."""
+    try:
+        request = urllib.request.Request(url, method="GET")
+        with urllib.request.urlopen(request, timeout=15) as response:
+            status = response.status
+            if status in (302, 307):
+                return True
+            body = response.read(512).decode("utf-8", errors="replace")
+            return 200 <= status < 300 and "Index of" not in body
+    except urllib.error.HTTPError as exc:
+        if exc.code in (302, 307):
+            return True
+        return False
     except urllib.error.URLError:
         return False
 
@@ -73,8 +91,8 @@ def main() -> int:
             )
             return 1
 
-    ok_backend = check(backend)
-    ok_frontend = check(frontend)
+    ok_backend = check_backend(backend)
+    ok_frontend = check_frontend(frontend)
     print(f"backend={backend} ok={ok_backend}")
     print(f"frontend={frontend} ok={ok_frontend}")
     return 0 if ok_backend and ok_frontend else 1

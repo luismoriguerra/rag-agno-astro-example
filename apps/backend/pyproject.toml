@@ -20,6 +20,7 @@ dependencies = [
   "python-multipart>=0.0.17",
   "langwatch>=0.3.0",
   "openinference-instrumentation-agno>=0.1.0",
+  "pyjwt[crypto]>=2.10.0",
 ]
 
 [project.optional-dependencies]

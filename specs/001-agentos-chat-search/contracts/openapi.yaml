@@ -3,19 +3,20 @@ info:
   title: AgentOS Chat Search API
   version: 0.1.0
   description: >
-    FastAPI contract for the AgentOS-backed chat experience. Identity is represented by a
-    mocked Auth0-compatible subject in the first implementation and must be replaceable by real
-    Auth0 token validation.
+    FastAPI contract for the AgentOS-backed chat experience. Protected routes require
+    Auth0 Bearer JWT access tokens with the access:api scope.
 servers:
   - url: http://localhost:8000
     description: Local backend
 components:
   securitySchemes:
-    MockIdentity:
-      type: apiKey
-      in: header
-      name: X-Mock-Identity
-      description: Mocked Auth0-compatible subject for local development. Production uses real Auth0 JWT validation.
+    Auth0Bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >
+        Auth0 access token for the application API (audience = AUTH0_API_AUDIENCE,
+        scope includes access:api).
 paths:
   /health:
     get:
@@ -32,7 +33,7 @@ paths:
     get:
       summary: List current identity chat sessions
       security:
-        - MockIdentity: []
+        - Auth0Bearer: []
       operationId: listChatSessions
       responses:
         "200":
@@ -50,7 +51,7 @@ paths:
     post:
       summary: Create a new persisted chat session
       security:
-        - MockIdentity: []
+        - Auth0Bearer: []
       operationId: createChatSession
       responses:
         "201":
@@ -63,7 +64,7 @@ paths:
     get:
       summary: Restore one chat session transcript
       security:
-        - MockIdentity: []
+        - Auth0Bearer: []
       operationId: getChatSession
       parameters:
         - $ref: "#/components/parameters/SessionId"
@@ -79,7 +80,7 @@ paths:
     delete:
       summary: Delete the active chat session and stop future context use
       security:
-        - MockIdentity: []
+        - Auth0Bearer: []
       operationId: deleteChatSession
       parameters:
         - $ref: "#/components/parameters/SessionId"
@@ -92,7 +93,7 @@ paths:
     post:
       summary: Submit a message and start an agent run
       security:
-        - MockIdentity: []
+        - Auth0Bearer: []
       operationId: createChatMessage
       parameters:
         - $ref: "#/components/parameters/SessionId"
@@ -117,7 +118,7 @@ paths:
     get:
       summary: Stream safe progress and answer events for an agent run
       security:
-        - MockIdentity: []
+        - Auth0Bearer: []
       operationId: streamAgentRun
       parameters:
         - $ref: "#/components/parameters/RunId"
@@ -143,7 +144,7 @@ paths:
     post:
       summary: Stop an active agent run
       security:
-        - MockIdentity: []
+        - Auth0Bearer: []
       operationId: stopAgentRun
       parameters:
         - $ref: "#/components/parameters/RunId"

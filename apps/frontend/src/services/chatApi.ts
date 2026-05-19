@@ -1,54 +1,72 @@
 import type { AgentRun, ChatMessage, ChatSession, ChatSessionDetail } from "./chatTypes";
+import {
+  AuthApiError,
+  authErrorKind,
+  getAccessToken,
+  getAuthorizationHeader,
+  loginRedirectUrl,
+  logoutRedirectUrl,
+} from "../lib/auth0";
 
-const API_BASE =
-  import.meta.env.PUBLIC_AGENTOS_API_BASE_URL ?? "http://localhost:8000";
-const MOCK_IDENTITY =
-  import.meta.env.PUBLIC_MOCK_IDENTITY ?? "mock|local-dev-user";
-
-function headers(): HeadersInit {
-  return {
-    "Content-Type": "application/json",
-    "X-Mock-Identity": MOCK_IDENTITY,
-  };
-}
+const API_BASE = import.meta.env.PUBLIC_AGENTOS_API_BASE_URL ?? "http://localhost:8000";
 
 async function parseError(response: Response): Promise<Error> {
   try {
     const body = await response.json();
-    return new Error(body.message ?? `Request failed (${response.status})`);
+    const message = body.message ?? `Request failed (${response.status})`;
+    if (response.status === 401 || response.status === 403) {
+      return new AuthApiError(message, authErrorKind(message));
+    }
+    return new Error(message);
   } catch {
     return new Error(`Request failed (${response.status})`);
   }
 }
 
+async function authFetch(
+  input: string,
+  init: RequestInit = {},
+  allowRetry = true,
+): Promise<Response> {
+  const authHeaders = await getAuthorizationHeader();
+  const res = await fetch(input, {
+    ...init,
+    headers: {
+      ...authHeaders,
+      ...(init.headers ?? {}),
+    },
+  });
+
+  if (res.status === 401 && allowRetry) {
+    await getAccessToken();
+    return authFetch(input, init, false);
+  }
+
+  return res;
+}
+
 export async function listSessions(): Promise<ChatSession[]> {
-  const res = await fetch(`${API_BASE}/api/chat/sessions`, { headers: headers() });
+  const res = await authFetch(`${API_BASE}/api/chat/sessions`);
   if (!res.ok) throw await parseError(res);
   const data = (await res.json()) as { sessions: ChatSession[] };
   return data.sessions;
 }
 
 export async function createSession(): Promise<ChatSession> {
-  const res = await fetch(`${API_BASE}/api/chat/sessions`, {
-    method: "POST",
-    headers: headers(),
-  });
+  const res = await authFetch(`${API_BASE}/api/chat/sessions`, { method: "POST" });
   if (!res.ok) throw await parseError(res);
   return res.json() as Promise<ChatSession>;
 }
 
 export async function getSession(sessionId: string): Promise<ChatSessionDetail> {
-  const res = await fetch(`${API_BASE}/api/chat/sessions/${sessionId}`, {
-    headers: headers(),
-  });
+  const res = await authFetch(`${API_BASE}/api/chat/sessions/${sessionId}`);
   if (!res.ok) throw await parseError(res);
   return res.json() as Promise<ChatSessionDetail>;
 }
 
 export async function deleteSession(sessionId: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/chat/sessions/${sessionId}`, {
+  const res = await authFetch(`${API_BASE}/api/chat/sessions/${sessionId}`, {
     method: "DELETE",
-    headers: headers(),
   });
   if (!res.ok && res.status !== 204) throw await parseError(res);
 }
@@ -65,9 +83,8 @@ export async function submitMessage(
   sessionId: string,
   content: string,
 ): Promise<{ message: ChatMessage; run: AgentRun }> {
-  const res = await fetch(`${API_BASE}/api/chat/sessions/${sessionId}/messages`, {
+  const res = await authFetch(`${API_BASE}/api/chat/sessions/${sessionId}/messages`, {
     method: "POST",
-    headers: headers(),
     body: JSON.stringify({ content }),
   });
   if (!res.ok) throw await parseError(res);
@@ -75,9 +92,8 @@ export async function submitMessage(
 }
 
 export async function stopRun(runId: string): Promise<AgentRun> {
-  const res = await fetch(`${API_BASE}/api/chat/runs/${runId}/stop`, {
+  const res = await authFetch(`${API_BASE}/api/chat/runs/${runId}/stop`, {
     method: "POST",
-    headers: headers(),
   });
   if (!res.ok) throw await parseError(res);
   return res.json() as Promise<AgentRun>;
@@ -96,10 +112,18 @@ export function streamRun(runId: string, handlers: StreamHandlers): () => void {
   const url = `${API_BASE}/api/chat/runs/${runId}/stream`;
 
   (async () => {
-    const res = await fetch(url, {
-      headers: { "X-Mock-Identity": MOCK_IDENTITY },
+    let token = await getAccessToken();
+    let res = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
       signal: controller.signal,
     });
+    if (res.status === 401) {
+      token = await getAccessToken();
+      res = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: controller.signal,
+      });
+    }
     if (!res.ok || !res.body) {
       handlers.onError("Unable to open response stream.");
       return;
@@ -156,3 +180,5 @@ export function streamRun(runId: string, handlers: StreamHandlers): () => void {
 
   return () => controller.abort();
 }
+
+export { loginRedirectUrl, logoutRedirectUrl };
