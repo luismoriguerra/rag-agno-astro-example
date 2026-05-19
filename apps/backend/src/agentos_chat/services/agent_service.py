@@ -24,6 +24,7 @@ from agentos_chat.models.schemas import (
 from agentos_chat.models.schemas import (
     RunStatusEnum as RunStatusSchemaEnum,
 )
+from agentos_chat.observability.langwatch import trace_agent_run
 from agentos_chat.services.logging import (
     trace_agent_run_start,
     trace_run_failed,
@@ -122,10 +123,11 @@ class AgentService:
                 agent = build_search_agent()
                 assistant_msg = next(m for m in history_rows if m.id == run.assistant_message_id)
 
-                response = await asyncio.wait_for(
-                    asyncio.to_thread(agent.run, prompt, stream=False),
-                    timeout=settings.request_timeout_seconds,
-                )
+                with trace_agent_run(run_id, session_id, auth_subject):
+                    response = await asyncio.wait_for(
+                        asyncio.to_thread(agent.run, prompt, stream=False),
+                        timeout=settings.request_timeout_seconds,
+                    )
                 if run_event_bus.is_cancelled(run_id):
                     await self._finalize_cancelled(db, messages_repo, run, assistant_msg)
                     return
@@ -203,9 +205,7 @@ class AgentService:
         await repo.update_run_status(run, RunStatusEnum.STOPPED)
         await repo.finalize_assistant_message(assistant_msg, MessageStatusEnum.STOPPED)
         await db.commit()
-        await run_event_bus.publish(
-            run.id, "done", {"run_id": str(run.id), "status": "stopped"}
-        )
+        await run_event_bus.publish(run.id, "done", {"run_id": str(run.id), "status": "stopped"})
         trace_stream_complete(str(run.id), "stopped")
 
     async def _finalize_failed(

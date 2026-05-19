@@ -49,6 +49,12 @@
       "skillPath": "fastapi/.agents/skills/fastapi/SKILL.md",
       "computedHash": "ee23d5285caf055cf164ff45dd34888d381143564666baacab8aa786f22e413a"
     },
+    "level-up": {
+      "source": "langwatch/skills",
+      "sourceType": "github",
+      "skillPath": "level-up/SKILL.md",
+      "computedHash": "9226f86aca651aa6501665254e77bf56a3550648173b87d9b4c9289a3aa26e54"
+    },
     "openrouter-typescript-sdk": {
       "source": "openrouterteam/agent-skills",
       "sourceType": "github",

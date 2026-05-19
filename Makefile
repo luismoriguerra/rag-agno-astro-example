@@ -1,10 +1,14 @@
 .PHONY: install dev check test db-up db-down migrate smoke-local \
-	railway-preflight railway-up railway-deploy railway-status railway-smoke \
+	railway-preflight railway-up railway-cleanup railway-deploy railway-status railway-smoke \
 	railway-logs-backend railway-logs-frontend
 
 BACKEND_DIR := apps/backend
 FRONTEND_DIR := apps/frontend
 E2E_DIR := apps/playwright_e2e
+
+# Source infra/railway/project.env into a Railway recipe. Use as:
+#   $(RAILWAY_ENV); <command using $$BACKEND_SERVICE etc.>
+RAILWAY_ENV := set -a && . infra/railway/project.env && set +a
 
 install:
 	cd $(BACKEND_DIR) && pip install -e ".[dev]"
@@ -60,18 +64,28 @@ railway-preflight:
 railway-up:
 	bash infra/railway/railway_up.sh
 
+railway-cleanup:
+	bash infra/railway/cleanup.sh
+
 railway-deploy:
-	railway up --service agentos-chat-backend
-	railway up --service agentos-chat-frontend
+	@$(RAILWAY_ENV) && \
+		railway up "$$BACKEND_DIR" --path-as-root --service "$$BACKEND_SERVICE" --detach -m "Deploy backend" && \
+		railway up "$$FRONTEND_DIR" --path-as-root --service "$$FRONTEND_SERVICE" --detach -m "Deploy frontend"
 
 railway-status:
 	railway status
 
 railway-smoke:
-	python infra/railway/smoke_test.py
+	@$(RAILWAY_ENV) && \
+		eval "$$(bash infra/railway/configure_urls.sh 2>/dev/null | sed -nE 's/^(BACKEND_URL|FRONTEND_URL)=/export \1=/p')" && \
+		RAILWAY_BACKEND_SERVICE="$$BACKEND_SERVICE" \
+		RAILWAY_FRONTEND_SERVICE="$$FRONTEND_SERVICE" \
+		SMOKE_BACKEND_PATH="$$SMOKE_BACKEND_PATH" \
+		SMOKE_FRONTEND_PATH="$$SMOKE_FRONTEND_PATH" \
+		python infra/railway/smoke_test.py
 
 railway-logs-backend:
-	railway logs --service agentos-chat-backend
+	@$(RAILWAY_ENV) && railway logs --service "$$BACKEND_SERVICE"
 
 railway-logs-frontend:
-	railway logs --service agentos-chat-frontend
+	@$(RAILWAY_ENV) && railway logs --service "$$FRONTEND_SERVICE"

@@ -1,6 +1,10 @@
 from functools import lru_cache
+from typing import Literal
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+AppEnvironment = Literal["local", "staging", "production"]
 
 
 class Settings(BaseSettings):
@@ -13,6 +17,16 @@ class Settings(BaseSettings):
     agno_telemetry: bool = False
     agent_model: str = "openrouter/google/gemini-2.0-flash-001"
     request_timeout_seconds: int = 60
+    langwatch_api_key: str = ""
+    langwatch_endpoint: str = ""
+    app_environment: AppEnvironment = "local"
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def normalize_database_url(cls, value: str) -> str:
+        if isinstance(value, str) and value.startswith("postgresql://"):
+            return value.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return value
 
     @property
     def cors_origin_list(self) -> list[str]:
