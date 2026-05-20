@@ -39,6 +39,7 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
     state,
     code_challenge: challenge,
     code_challenge_method: "S256",
+    prompt: "select_account",
   });
 
   return redirect(auth0AuthorizeUrl(config, params));
