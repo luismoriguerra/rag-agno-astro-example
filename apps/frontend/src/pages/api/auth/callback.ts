@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 
-import { auth0TokenUrl, getAuthConfig } from "../../../lib/auth/config";
+import { auth0LogoutUrl, auth0TokenUrl, getAuthConfig } from "../../../lib/auth/config";
 import {
   ACCESS_COOKIE,
   PKCE_COOKIE,
@@ -18,7 +18,14 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
   const error = url.searchParams.get("error_description") ?? url.searchParams.get("error");
 
   if (error) {
-    return redirect(`/chat?auth_error=${encodeURIComponent(error)}`);
+    cookies.delete(SESSION_COOKIE, { path: "/" });
+    cookies.delete(REFRESH_COOKIE, { path: "/" });
+    cookies.delete(ACCESS_COOKIE, { path: "/" });
+    cookies.delete(PKCE_COOKIE, { path: "/" });
+    cookies.delete(STATE_COOKIE, { path: "/" });
+
+    const returnUrl = `${config.appOrigin}/api/auth/login`;
+    return redirect(auth0LogoutUrl(config, returnUrl));
   }
 
   if (!code || !state) {
