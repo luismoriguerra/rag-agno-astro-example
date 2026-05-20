@@ -49,8 +49,12 @@ variable "web_origins" {
 
 variable "allowed_emails" {
   type        = list(string)
-  description = "Email addresses permitted to sign in via post-login Action"
-  default     = ["luismoridev@gmail.com"]
+  description = "Email addresses permitted to sign in via post-login Action (set in terraform.tfvars; not committed)"
+
+  validation {
+    condition     = length(var.allowed_emails) > 0
+    error_message = "allowed_emails must contain at least one email address."
+  }
 }
 
 variable "manage_google_connection" {
