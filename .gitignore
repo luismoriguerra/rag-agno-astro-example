@@ -164,6 +164,9 @@ apps/playwright_e2e/.cache/
 
 # Environments
 .env
+.env.*
+!.env.example
+!.env.*.example
 .envrc
 .venv
 env/
@@ -233,8 +236,19 @@ __marimo__/
 .streamlit/secrets.toml
 *.env
 
-# Auth0 Terraform (secrets and provider cache)
-infra/auth0-terraform/.terraform/
-infra/auth0-terraform/terraform.tfvars
-infra/auth0-terraform/*.tfstate
-infra/auth0-terraform/*.tfstate.*
+# Terraform (provider cache, state, secrets)
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+!*.tfvars.json.example
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc

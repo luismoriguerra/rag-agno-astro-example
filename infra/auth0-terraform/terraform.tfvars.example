@@ -14,7 +14,7 @@ web_origins                     = [
   "http://localhost:4321",
   "https://your-frontend.up.railway.app",
 ]
-allowed_emails                  = ["luismoridev@gmail.com"]
+allowed_emails                  = ["you@example.com"]
 
 # Google: use existing tenant connection (default). Enable SPA on Google in dashboard after apply.
 manage_google_connection        = false
