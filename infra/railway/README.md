@@ -1,7 +1,7 @@
 # Railway deployment
 
 Project: **web0personal-vector**
-Dashboard: https://railway.com/project/10ed6588-8533-4040-8a52-c26ab8f4e676
+Dashboard: https://railway.com/project/<YOUR_PROJECT_ID>
 
 All app-specific settings live in [project.env](project.env). For adopting
 the same scripts in a new repo, see [TEMPLATE.md](TEMPLATE.md).
@@ -18,11 +18,11 @@ Browser
 
 | Service | Name | URL |
 |---------|------|-----|
-| Backend | `agentos-chat-backend` | https://agentos-chat-backend-production.up.railway.app |
-| Frontend | `agentos-chat-frontend` | https://agentos-chat-frontend-production.up.railway.app |
+| Backend | `agentos-chat-backend` | `https://<backend-service>-production.up.railway.app` |
+| Frontend | `agentos-chat-frontend` | `https://<frontend-service>-production.up.railway.app` |
 | Database | `Postgres` | `${{Postgres.DATABASE_URL}}` on backend |
 
-Chat UI: https://agentos-chat-frontend-production.up.railway.app/chat/
+Chat UI: `https://<frontend-service>-production.up.railway.app/chat/`
 
 ## Commands
 
