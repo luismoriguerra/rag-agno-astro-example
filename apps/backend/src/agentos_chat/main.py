@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from agentos_chat.api import messages, runs, sessions, stream
+from agentos_chat.api import research_articles, research_sessions, research_stream
 from agentos_chat.auth.jwt_middleware import build_jwt_middleware_kwargs, fetch_jwks_pem_keys_sync
 from agentos_chat.models.schemas import HealthResponse
 from agentos_chat.observability.langwatch import configure_langwatch
@@ -82,6 +83,10 @@ app.include_router(sessions.router)
 app.include_router(messages.router)
 app.include_router(stream.router)
 app.include_router(runs.router)
+
+app.include_router(research_sessions.router)
+app.include_router(research_stream.router)
+app.include_router(research_articles.router)
 
 
 def main() -> None:

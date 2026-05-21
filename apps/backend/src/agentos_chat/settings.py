@@ -20,7 +20,9 @@ class Settings(BaseSettings):
     openrouter_api_key: str = ""
     agno_telemetry: bool = False
     agent_model: str = "openrouter/google/gemini-2.0-flash-001"
+    research_agent_model: str = "deepseek/deepseek-v4-flash:nitro"
     request_timeout_seconds: int = 60
+    research_timeout_seconds: int = 300
     langwatch_api_key: str = ""
     langwatch_endpoint: str = ""
     app_environment: AppEnvironment = "local"
