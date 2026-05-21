@@ -1,3 +1,20 @@
 ---
-return Astro.redirect("/chat/");
+import AppLayout from "../layouts/AppLayout.astro";
 ---
+
+<AppLayout title="Home">
+  <section>
+    <h1>AgentOS Chat</h1>
+    <p>Search-powered assistant with web chat and optional WhatsApp integration.</p>
+    <p>
+      Use the sidebar to open <a href="/chat/">Chat</a> or manage WhatsApp access on
+      <a href="/profile/">Profile</a>.
+    </p>
+  </section>
+</AppLayout>
+
+<style>
+  a {
+    color: #8ec5ff;
+  }
+</style>

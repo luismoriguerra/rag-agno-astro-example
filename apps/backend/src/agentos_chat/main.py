@@ -7,11 +7,12 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from agentos_chat.api import messages, runs, sessions, stream
+from agentos_chat.api import messages, runs, sessions, stream, whatsapp_settings
 from agentos_chat.auth.jwt_middleware import build_jwt_middleware_kwargs, fetch_jwks_pem_keys_sync
 from agentos_chat.models.schemas import HealthResponse
 from agentos_chat.observability.langwatch import configure_langwatch
 from agentos_chat.services.logging import configure_logging, log_auth_failure
+from agentos_chat.services.whatsapp_service import mount_whatsapp_if_configured
 from agentos_chat.settings import get_settings
 
 
@@ -82,6 +83,9 @@ app.include_router(sessions.router)
 app.include_router(messages.router)
 app.include_router(stream.router)
 app.include_router(runs.router)
+app.include_router(whatsapp_settings.router)
+
+mount_whatsapp_if_configured(app, settings)
 
 
 def main() -> None:

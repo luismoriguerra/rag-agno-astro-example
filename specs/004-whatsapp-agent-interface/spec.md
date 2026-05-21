@@ -75,7 +75,7 @@ A logged-in user visits a Profile page in the frontend application. The page dis
 
 **Why this priority**: Controls who can use the bot and prevents unexpected LLM costs from unauthorized users. Also provides a self-service way to manage the WhatsApp feature without redeploying or editing environment variables.
 
-**Independent Test**: Can be tested by logging into the frontend, navigating to the Profile page, toggling "Enable WhatsApp chat" on, adding a phone number, and then verifying that only that number can interact with the WhatsApp bot.
+**Independent Test**: Can be tested by logging into the frontend, navigating to the Profile page (via sidebar once US6 is complete, or direct URL `/profile` during US5-only development), toggling "Enable WhatsApp chat" on, adding a phone number, and then verifying that only that number can interact with the WhatsApp bot. Sidebar visibility on Profile is validated under US6 / FR-019 (requires AppLayout wrap).
 
 **Acceptance Scenarios**:
 
@@ -107,7 +107,7 @@ The frontend application includes a persistent sidebar with links to Home (`/`),
 
 - When a user sends an empty message or only whitespace, the system silently ignores it (no agent call, no response).
 - When messages exceed the agent's context window limit, the oldest messages beyond the 10-exchange window are dropped from context automatically.
-- When the agent takes longer than the configured timeout (default 60 seconds), the agent call is cancelled and the user receives a friendly timeout error message.
+- When the agent takes longer than the configured timeout (default 60 seconds), the agent call is cancelled and the user receives the timeout error message defined in FR-007.
 - When a user sends multiple messages while a previous request is still processing, the system queues incoming messages and processes them sequentially per user. The user receives a "processing..." acknowledgment while waiting for the queued message to be handled.
 - When Meta's servers are temporarily unreachable for sending replies, the system retries up to 3 times with exponential backoff (2s, 4s, 8s). If all retries fail, the error is logged and the response is discarded.
 - When the WhatsApp access token expires or is revoked, outbound message delivery fails and the error is logged. The system continues to receive webhooks but cannot reply until the token is refreshed.
@@ -122,9 +122,9 @@ The frontend application includes a persistent sidebar with links to Home (`/`),
 - **FR-002**: System MUST validate incoming webhook signatures using HMAC-SHA256 when `WHATSAPP_APP_SECRET` is configured.
 - **FR-003**: System MUST receive text messages from WhatsApp users and route them to the existing search agent for processing.
 - **FR-004**: System MUST send the agent's response back to the user as a WhatsApp text message.
-- **FR-005**: System MUST maintain per-user conversation sessions scoped by phone number, enabling context-aware multi-turn conversations with up to 10 prior exchanges included in context.
+- **FR-005**: System MUST maintain per-user conversation sessions scoped by phone number, enabling context-aware multi-turn conversations with up to 10 prior agent runs included in context (`num_history_runs=10`; one run = one user message processed and one agent response generated).
 - **FR-006**: System MUST support the `/new` command to start a fresh session while preserving the prior session data.
-- **FR-007**: System MUST handle agent errors gracefully by sending a user-friendly error message via WhatsApp instead of failing silently.
+- **FR-007**: System MUST handle agent errors and timeouts gracefully by sending a plain-text WhatsApp message instead of failing silently. Messages MUST NOT include stack traces, internal error codes, or raw exception text. Use these exact default messages unless overridden in configuration: (a) agent/processing failure — `"Sorry, I couldn't process your message. Please try again."`; (b) timeout (default 60 seconds) — `"Sorry, this is taking too long. Please try again or send /new to start fresh."`. Each message MUST be under 500 characters.
 - **FR-008**: System MUST log all incoming messages and outgoing responses for observability and debugging.
 - **FR-009**: System MUST support configurable environment variables for WhatsApp credentials (`WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET`) and an optional development-only variable `WHATSAPP_SKIP_SIGNATURE_VALIDATION` (defaults to false; when true, bypasses HMAC signature checks for local development with ngrok).
 - **FR-010**: System MUST coexist with the existing REST/SSE chat API without disrupting current functionality. WhatsApp routes MUST only be mounted when required credentials (`WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN`) are present. If missing, the app MUST start normally without WhatsApp functionality and log a startup warning. The existing REST/SSE API is unaffected.
@@ -160,11 +160,11 @@ The frontend application includes a persistent sidebar with links to Home (`/`),
 ### Measurable Outcomes
 
 - **SC-001**: Users receive a response to their WhatsApp message within 60 seconds of sending it.
-- **SC-002**: The bot correctly answers at least 90% of factual questions that the existing REST-based agent answers correctly (parity with existing channel).
+- **SC-002**: The bot correctly answers at least 90% of factual questions that the existing REST-based agent answers correctly (parity with existing channel). **Verification method**: use the fixed 10-question parity set in `quickstart.md` §7; send each prompt to both REST chat and WhatsApp (with WhatsApp enabled); for each question, mark pass if the WhatsApp reply contains the same core factual claim as the REST reply (manual review); pass SC-002 when ≥9/10 questions pass.
 - **SC-003**: Follow-up questions that depend on prior conversation context are answered correctly within the same session.
 - **SC-004**: The `/new` command successfully resets context, verified by the bot not referencing prior conversation in subsequent answers.
 - **SC-005**: Invalid webhook signatures are rejected 100% of the time when `WHATSAPP_APP_SECRET` is configured.
-- **SC-006**: The existing REST/SSE chat API continues to function without any regressions after the WhatsApp interface is added.
+- **SC-006**: The existing REST/SSE chat API continues to function without regressions after the WhatsApp interface is added. **Verification scope**: `GET /health` returns 200; authenticated chat session create/list/message flows work; SSE streaming delivers at least one complete assistant reply; `make test` passes for existing backend and frontend chat tests.
 
 ## Clarifications
 
@@ -187,6 +187,13 @@ The frontend application includes a persistent sidebar with links to Home (`/`),
 - Q: Should `WHATSAPP_SKIP_SIGNATURE_VALIDATION` be documented? → A: Yes, add to FR-009 as an optional dev-only variable (defaults to false). Bypasses HMAC checks for local ngrok development.
 - Q: What happens when WhatsApp env vars are not set? → A: Opt-in — WhatsApp routes only mount when required credentials are present. App starts normally without WhatsApp, logging a warning. Existing API unaffected.
 - Q: What is the webhook URL path? → A: `/whatsapp/webhook` (Agno default prefix). Full callback URL for Meta dashboard: `{BASE_URL}/whatsapp/webhook`.
+
+### Session 2026-05-20 (analysis remediation)
+
+- Q: What counts as one "exchange" for the 10-message context window? → A: One agent run — one inbound user message processed and one agent response generated (`num_history_runs=10`).
+- Q: What exact text should users see on agent errors and timeouts? → A: Fixed plain-text defaults in FR-007; no stack traces or internal codes; under 500 characters.
+- Q: How is SC-002 (90% REST parity) measured? → A: Fixed 10-question set in `quickstart.md` §7; manual comparison of core factual claims; ≥9/10 passes.
+- Q: When is US5 "complete" vs FR-019 sidebar on Profile? → A: US5 settings functionality is independently testable at `/profile`; FR-019 sidebar on Profile requires US6 AppLayout wrap (tasks T039–T040, T043).
 
 ## Assumptions
 

@@ -1,0 +1,141 @@
+---
+import Sidebar from "../components/Sidebar.astro";
+
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <div class="app-shell">
+      <Sidebar />
+      <main class="app-main">
+        <slot />
+      </main>
+    </div>
+  </body>
+</html>
+
+<style is:global>
+  :root {
+    color-scheme: light dark;
+    font-family: system-ui, sans-serif;
+  }
+
+  body {
+    margin: 0;
+    background: #0f1419;
+    color: #e7ecf3;
+  }
+
+  .app-shell {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  .app-main {
+    flex: 1;
+    padding: 1.5rem;
+    max-width: 56rem;
+  }
+
+  button {
+    border: 1px solid #3a4a5c;
+    background: #1b2733;
+    color: #e7ecf3;
+    border-radius: 0.375rem;
+    padding: 0.4rem 0.75rem;
+    cursor: pointer;
+  }
+
+  button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  input[type="tel"],
+  input[type="text"] {
+    border: 1px solid #3a4a5c;
+    background: #1b2733;
+    color: #e7ecf3;
+    border-radius: 0.375rem;
+    padding: 0.4rem 0.75rem;
+  }
+
+  .profile-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .profile-header h1 {
+    margin: 0 0 0.25rem;
+  }
+
+  .profile-user {
+    margin: 0;
+    font-weight: 600;
+  }
+
+  .profile-email {
+    margin: 0.25rem 0 0;
+    color: #9fb0c3;
+  }
+
+  .profile-section {
+    border: 1px solid #3a4a5c;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    background: #121a22;
+  }
+
+  .profile-hint {
+    color: #9fb0c3;
+    font-size: 0.9rem;
+  }
+
+  .profile-error {
+    color: #ff8a8a;
+  }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .allowlist-form {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+  }
+
+  .allowlist {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .allowlist li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+    border-top: 1px solid #243041;
+  }
+</style>

@@ -17,6 +17,10 @@ CHAT_ROUTE_PATTERNS = (
     "POST /api/chat/sessions/*/messages",
     "GET /api/chat/runs/*/stream",
     "POST /api/chat/runs/*/stop",
+    "GET /api/whatsapp/settings",
+    "PATCH /api/whatsapp/settings",
+    "POST /api/whatsapp/settings/allowlist",
+    "DELETE /api/whatsapp/settings/allowlist/*",
 )
 
 
@@ -103,7 +107,7 @@ def build_jwt_middleware_kwargs(
         "authorization": False,
         "scopes_claim": "scope",
         "verify_audience": True,
-        "excluded_route_paths": ["/health"],
+        "excluded_route_paths": ["/health", "/whatsapp/webhook"],
     }
 
     if settings.auth0_jwt_test_mode:

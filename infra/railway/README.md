@@ -43,6 +43,14 @@ make railway-logs-frontend
 `AGENT_MODEL`, `AGNO_TELEMETRY=false`, optional `LANGWATCH_API_KEY`/`LANGWATCH_ENDPOINT`,
 `APP_ENVIRONMENT=production`.
 
+**WhatsApp (optional):** `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`,
+`WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET`. Backend starts without these; routes mount
+only when the first three are set. Register Meta webhook callback at
+`https://<backend-service>-production.up.railway.app/whatsapp/webhook`. Do **not** set
+`WHATSAPP_SKIP_SIGNATURE_VALIDATION` in production. Enable the bot via Profile → WhatsApp
+settings after deploy. See
+[specs/004-whatsapp-agent-interface/quickstart.md](../../specs/004-whatsapp-agent-interface/quickstart.md).
+
 **Frontend:** `PUBLIC_AUTH0_DOMAIN`, `PUBLIC_AUTH0_CLIENT_ID`, `PUBLIC_AUTH0_AUDIENCE`,
 `PUBLIC_AGENTOS_API_BASE_URL`, `AUTH0_SECRET` (server-only session cookie signing).
 

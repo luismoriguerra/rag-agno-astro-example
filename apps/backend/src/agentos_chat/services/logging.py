@@ -65,3 +65,44 @@ def log_auth_failure(*, status_code: int, code: str, path: str) -> None:
         code=code,
         path=path,
     )
+
+
+def log_whatsapp_inbound(*, phone: str, message_preview: str) -> None:
+    log_event("whatsapp_inbound", phone=phone, message_preview=message_preview)
+
+
+def log_whatsapp_outbound(
+    *,
+    phone: str,
+    retry_count: int,
+    success: bool,
+    error: str | None = None,
+) -> None:
+    fields: dict[str, object] = {
+        "phone": phone,
+        "retry_count": retry_count,
+        "success": success,
+    }
+    if error:
+        fields["error"] = error
+    log_event("whatsapp_outbound", **fields)
+
+
+def log_whatsapp_gate(
+    *,
+    phone: str,
+    enabled: bool,
+    allowed: bool,
+    decision: str,
+) -> None:
+    log_event(
+        "whatsapp_gate",
+        phone=phone,
+        enabled=enabled,
+        allowed=allowed,
+        decision=decision,
+    )
+
+
+def log_whatsapp_error(*, phone: str, message: str) -> None:
+    log_event("whatsapp_error", phone=phone, message=message)

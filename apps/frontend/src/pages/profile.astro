@@ -1,0 +1,18 @@
+---
+import AppLayout from "../layouts/AppLayout.astro";
+import ProfileSettings from "../components/ProfileSettings";
+import { verifySignedPayload, SESSION_COOKIE } from "../lib/auth/session";
+
+const secret = process.env.AUTH0_SECRET ?? import.meta.env.AUTH0_SECRET;
+const session = secret
+  ? verifySignedPayload(Astro.cookies.get(SESSION_COOKIE)?.value, secret)
+  : null;
+---
+
+<AppLayout title="Profile">
+  <ProfileSettings
+    client:load
+    userName={session?.name}
+    userEmail={session?.email}
+  />
+</AppLayout>

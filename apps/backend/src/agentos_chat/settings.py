@@ -24,6 +24,11 @@ class Settings(BaseSettings):
     langwatch_api_key: str = ""
     langwatch_endpoint: str = ""
     app_environment: AppEnvironment = "local"
+    whatsapp_access_token: str = ""
+    whatsapp_phone_number_id: str = ""
+    whatsapp_verify_token: str = ""
+    whatsapp_app_secret: str = ""
+    whatsapp_skip_signature_validation: bool = False
 
     @field_validator("database_url", mode="before")
     @classmethod
@@ -43,6 +48,14 @@ class Settings(BaseSettings):
     @property
     def auth0_configured(self) -> bool:
         return bool(self.auth0_domain and self.auth0_issuer and self.auth0_api_audience)
+
+    @property
+    def whatsapp_configured(self) -> bool:
+        return bool(
+            self.whatsapp_access_token
+            and self.whatsapp_phone_number_id
+            and self.whatsapp_verify_token
+        )
 
 
 @lru_cache

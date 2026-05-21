@@ -86,3 +86,21 @@ class CreateMessageResponse(BaseModel):
 class ErrorResponse(BaseModel):
     code: str
     message: str
+
+
+class AllowedPhoneNumberSchema(BaseModel):
+    phone_number: str
+    created_at: datetime
+
+
+class WhatsAppSettingsSchema(BaseModel):
+    enabled: bool
+    allowed_phone_numbers: list[AllowedPhoneNumberSchema]
+
+
+class WhatsAppSettingsUpdateRequest(BaseModel):
+    enabled: bool
+
+
+class WhatsAppAllowlistAddRequest(BaseModel):
+    phone_number: str = Field(min_length=2, max_length=20)
