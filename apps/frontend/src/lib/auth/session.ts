@@ -10,6 +10,8 @@ export type SessionPayload = {
   sub: string;
   exp: number;
   name?: string;
+  email?: string;
+  picture?: string;
 };
 
 export function randomUrlSafe(bytes = 32): string {

@@ -252,3 +252,6 @@ override.tf.json
 *_override.tf.json
 .terraformrc
 terraform.rc
+
+# Playwright auth state (contains session cookies)
+apps/playwright_e2e/playwright/.auth/user.json
