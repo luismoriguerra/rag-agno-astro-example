@@ -78,8 +78,8 @@ export default function ArticlePreview({ markdown, isLoading }: ArticlePreviewPr
   }
 
   return (
-    <div className="max-w-[72ch] mx-auto px-8 py-8">
-      <article className="article-prose">
+    <div className="max-w-[72ch] mx-auto px-4 py-6 md:px-8 md:py-8 overflow-x-auto">
+      <article className="article-prose max-w-full">
         <Markdown
           remarkPlugins={[remarkGfm]}
           rehypePlugins={[rehypeHighlight, rehypeRaw]}

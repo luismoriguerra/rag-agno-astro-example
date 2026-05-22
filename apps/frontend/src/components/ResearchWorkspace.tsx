@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import ResearchChat from "./ResearchChat";
 import ArticlePreview from "./ArticlePreview";
 import ArticleControls from "./ArticleControls";
+import WorkspaceTabs from "./WorkspaceTabs";
 import {
   getResearchSession,
   streamResearchRun,
@@ -10,6 +11,7 @@ import {
   stopResearchRun,
 } from "../services/researchApi";
 import { setUrlParam, getUrlParam, removeUrlParam } from "../lib/urlState";
+import { shouldSetArticleBadge, type WorkspaceTab } from "../lib/workspaceTabState";
 import type { ResearchMessage, ResearchUiState } from "../services/researchTypes";
 
 interface ResearchWorkspaceProps {
@@ -27,8 +29,28 @@ export default function ResearchWorkspace({ sessionId }: ResearchWorkspaceProps)
   const [versionNumber, setVersionNumber] = useState(0);
   const [articleStatus, setArticleStatus] = useState<"draft" | "published">("draft");
   const [suggestedActions, setSuggestedActions] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>("thread");
+  const [articleHasUpdate, setArticleHasUpdate] = useState(false);
+  const activeTabRef = useRef<WorkspaceTab>("thread");
   const stopStreamRef = useRef<(() => void) | null>(null);
   const activeRunIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
+
+  const markArticleUpdated = useCallback(() => {
+    if (shouldSetArticleBadge(activeTabRef.current)) {
+      setArticleHasUpdate(true);
+    }
+  }, []);
+
+  const handleTabChange = (tab: WorkspaceTab) => {
+    setActiveTab(tab);
+    if (tab === "article") {
+      setArticleHasUpdate(false);
+    }
+  };
 
   const connectToStream = useCallback((runId: string) => {
     setUiState("thinking");
@@ -48,6 +70,7 @@ export default function ResearchWorkspace({ sessionId }: ResearchWorkspaceProps)
         setTitle(article.title);
         setVersionNumber(article.version);
         setArticleStatus("draft");
+        markArticleUpdated();
         if (!articleId) {
           try {
             const detail = await getResearchSession(sessionId);
@@ -62,6 +85,7 @@ export default function ResearchWorkspace({ sessionId }: ResearchWorkspaceProps)
         setUiState("done");
         setStatusText("");
         removeUrlParam("run_id");
+        markArticleUpdated();
         try {
           const detail = await getResearchSession(sessionId);
           setMessages(detail.messages);
@@ -78,7 +102,7 @@ export default function ResearchWorkspace({ sessionId }: ResearchWorkspaceProps)
       },
       onError: (message) => { setError(message); setUiState("error"); setStatusText(""); },
     });
-  }, [sessionId, articleId]);
+  }, [sessionId, articleId, markArticleUpdated]);
 
   useEffect(() => {
     let cancelled = false;
@@ -114,20 +138,37 @@ export default function ResearchWorkspace({ sessionId }: ResearchWorkspaceProps)
     return () => { cancelled = true; stopStreamRef.current?.(); };
   }, [sessionId, connectToStream]);
 
+  const threadPanelClass =
+    activeTab === "thread" ? "flex flex-col overflow-hidden" : "hidden md:flex md:flex-col md:overflow-hidden";
+  const articlePanelClass =
+    activeTab === "article" ? "flex flex-col overflow-hidden" : "hidden md:flex md:flex-col md:overflow-hidden";
+
   return (
-    <div className="flex flex-col h-full">
-      <div className="px-5 py-3 border-b border-[#e5e2de] bg-white flex-shrink-0">
+    <div className="flex flex-col h-full min-h-0">
+      <div className="px-4 md:px-5 py-3 border-b border-[#e5e2de] bg-white flex-shrink-0">
         <h1 className="text-lg font-semibold text-[#1a1a1a] truncate">{title}</h1>
         {error && <p className="text-sm text-red-600 mt-1">{error}</p>}
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
-        <div className="w-[40%] min-w-[280px] border-r border-[#e5e2de] flex flex-col overflow-hidden bg-white">
+      <WorkspaceTabs
+        activeTab={activeTab}
+        articleHasUpdate={articleHasUpdate}
+        onTabChange={handleTabChange}
+      />
+
+      <div className="flex flex-1 min-h-0 overflow-hidden flex-col md:flex-row">
+        <div
+          id="workspace-panel-thread"
+          role="tabpanel"
+          aria-labelledby="workspace-tab-thread"
+          className={`${threadPanelClass} w-full md:w-[40%] md:min-w-[280px] md:max-w-none border-r border-[#e5e2de] bg-white min-h-0`}
+        >
           <ResearchChat
             messages={messages}
             uiState={uiState}
             statusText={statusText}
             suggestedActions={suggestedActions}
+            hideSectionHeader
             onSendMessage={async (content) => {
               try {
                 setSuggestedActions([]);
@@ -168,9 +209,14 @@ export default function ResearchWorkspace({ sessionId }: ResearchWorkspaceProps)
           />
         </div>
 
-        <div className="flex-1 flex flex-col overflow-hidden bg-[#faf9f7]">
+        <div
+          id="workspace-panel-article"
+          role="tabpanel"
+          aria-labelledby="workspace-tab-article"
+          className={`${articlePanelClass} flex-1 bg-[#faf9f7] min-h-0`}
+        >
           {articleMarkdown && articleId && (
-            <div className="px-5 py-2 border-b border-[#e5e2de] bg-white flex-shrink-0">
+            <div className="px-4 md:px-5 py-2 border-b border-[#e5e2de] bg-white flex-shrink-0">
               <ArticleControls
                 articleId={articleId}
                 versionNumber={versionNumber}
@@ -181,7 +227,7 @@ export default function ResearchWorkspace({ sessionId }: ResearchWorkspaceProps)
               />
             </div>
           )}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
             <ArticlePreview
               markdown={articleMarkdown}
               isLoading={uiState === "thinking" || uiState === "streaming"}
