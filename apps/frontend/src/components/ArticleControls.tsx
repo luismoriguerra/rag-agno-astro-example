@@ -52,15 +52,15 @@ export default function ArticleControls({
   };
 
   return (
-    <div className="flex items-center gap-3">
-      <span className="text-xs font-semibold text-[#6b7280] bg-[#f5f3f0] px-2 py-1 rounded">
+    <div className="flex flex-wrap items-center gap-2 md:gap-3">
+      <span className="text-xs font-semibold text-[#6b7280] bg-[#f5f3f0] px-2 py-1 rounded min-h-11 flex items-center">
         v{versionNumber}
       </span>
 
       <button
         onClick={() => void handleToggleStatus()}
         disabled={updating}
-        className={`text-xs font-medium px-3 py-1 rounded-lg transition-colors disabled:opacity-50 ${
+        className={`min-h-11 text-xs font-medium px-3 py-1 rounded-lg transition-colors disabled:opacity-50 ${
           status === "published"
             ? "bg-green-50 text-green-700 hover:bg-green-100"
             : "bg-[#44312a] text-white hover:bg-[#5a4238]"
@@ -71,7 +71,7 @@ export default function ArticleControls({
 
       <button
         onClick={handleDownload}
-        className="text-xs font-medium text-[#6b7280] border border-[#e5e2de] px-3 py-1 rounded-lg hover:bg-[#f5f3f0] transition-colors flex items-center gap-1"
+        className="min-h-11 text-xs font-medium text-[#6b7280] border border-[#e5e2de] px-3 py-1 rounded-lg hover:bg-[#f5f3f0] transition-colors flex items-center gap-1"
       >
         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />

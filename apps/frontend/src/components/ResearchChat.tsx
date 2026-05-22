@@ -7,6 +7,7 @@ interface ResearchChatProps {
   uiState: ResearchUiState;
   statusText: string;
   suggestedActions?: string[];
+  hideSectionHeader?: boolean;
   onSendMessage?: (content: string) => void | Promise<void>;
   onStop?: () => void;
   onRetry?: () => void;
@@ -17,6 +18,7 @@ export default function ResearchChat({
   uiState,
   statusText,
   suggestedActions = [],
+  hideSectionHeader = false,
   onSendMessage,
   onStop,
   onRetry,
@@ -37,14 +39,16 @@ export default function ResearchChat({
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="px-4 py-3 border-b border-[#e5e2de] shrink-0">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-[#6b7280]">
-          Research Thread
-        </h2>
-      </div>
+    <div className="flex flex-col h-full min-h-0">
+      {!hideSectionHeader && (
+        <div className="px-4 py-3 border-b border-[#e5e2de] shrink-0">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-[#6b7280]">
+            Research Thread
+          </h2>
+        </div>
+      )}
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-4">
         {messages.length === 0 && uiState === "loading" && (
           <p className="text-sm text-[#6b7280] italic text-center py-8">Loading conversation...</p>
         )}
@@ -68,7 +72,7 @@ export default function ResearchChat({
           <div className="flex gap-3 items-start pl-10">
             <button
               onClick={onRetry}
-              className="text-sm text-white bg-red-500 hover:bg-red-600 px-3 py-1.5 rounded-lg transition-colors"
+              className="min-h-11 text-sm text-white bg-red-500 hover:bg-red-600 px-3 py-1.5 rounded-lg transition-colors"
             >
               Retry
             </button>
@@ -90,11 +94,11 @@ export default function ResearchChat({
         )}
       </div>
 
-      <div className="px-4 py-3 border-t border-[#e5e2de] flex gap-2 shrink-0 bg-white">
+      <div className="px-4 py-3 border-t border-[#e5e2de] flex gap-2 shrink-0 bg-white sticky bottom-0 md:static">
         {isRunning ? (
           <button
             onClick={onStop}
-            className="w-full text-sm font-medium text-[#6b7280] border border-[#d1d5db] hover:bg-[#f3f4f6] py-2 rounded-lg transition-colors"
+            className="w-full min-h-11 text-sm font-medium text-[#6b7280] border border-[#d1d5db] hover:bg-[#f3f4f6] py-2 rounded-lg transition-colors"
           >
             Stop generating
           </button>
@@ -107,12 +111,12 @@ export default function ResearchChat({
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
               placeholder="Refine the article..."
               disabled={isRunning}
-              className="flex-1 border border-[#e5e2de] rounded-xl px-3.5 py-2 text-sm bg-[#f9fafb] text-[#1a1a1a] placeholder:text-[#b0ada8] focus:outline-none focus:ring-2 focus:ring-[#10a37f]/20 focus:border-[#10a37f] focus:bg-white"
+              className="flex-1 min-h-11 border border-[#e5e2de] rounded-xl px-3.5 py-2 text-sm bg-[#f9fafb] text-[#1a1a1a] placeholder:text-[#b0ada8] focus:outline-none focus:ring-2 focus:ring-[#10a37f]/20 focus:border-[#10a37f] focus:bg-white"
             />
             <button
               onClick={handleSend}
               disabled={!input.trim() || isRunning}
-              className="text-sm font-medium text-white bg-[#10a37f] hover:bg-[#0d8c6d] px-4 py-2 rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="min-h-11 text-sm font-medium text-white bg-[#10a37f] hover:bg-[#0d8c6d] px-4 py-2 rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Send
             </button>
