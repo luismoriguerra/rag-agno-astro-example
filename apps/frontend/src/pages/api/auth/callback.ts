@@ -68,8 +68,18 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
 
   const sub = decodeJwtSub(tokens.access_token) ?? "unknown";
   const name = decodeJwtClaim(tokens.access_token, "name");
+
+  let email: string | undefined;
+  let picture: string | undefined;
+  if (tokens.id_token) {
+    email = decodeJwtClaim(tokens.id_token, "email");
+    picture = decodeJwtClaim(tokens.id_token, "picture");
+  }
+  if (!email) email = decodeJwtClaim(tokens.access_token, "email");
+  if (!picture) picture = decodeJwtClaim(tokens.access_token, "picture");
+
   const sessionExp = Math.floor(Date.now() / 1000) + 60 * 60 * 24;
-  const sessionValue = signPayload({ sub, exp: sessionExp, name }, config.secret);
+  const sessionValue = signPayload({ sub, exp: sessionExp, name, email, picture }, config.secret);
 
   cookies.set(SESSION_COOKIE, sessionValue, {
     httpOnly: true,

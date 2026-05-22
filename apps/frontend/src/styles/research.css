@@ -1,0 +1,6 @@
+/* Minimal overrides — bulk styling is now in Tailwind utility classes */
+
+/* Highlight.js light theme adjustments */
+.hljs {
+  background: #f5f3f0 !important;
+}
