@@ -16,7 +16,7 @@ Add a Research Generator feature to the home page. Users enter a research idea i
 **Target Platform**: Local macOS/Linux development and Railway Linux services
 **Project Type**: RAG web application extension (new feature module in existing monorepo)
 **Performance Goals**: Idea-to-draft in under 3 minutes (SC-001); article panel update within 2 seconds after refinement (SC-004); pagination within 1 second for 500 sessions (SC-008)
-**Constraints**: All pages private (Auth0); DuckDuckGo only for v1; manual edit deferred; no delete; no public URLs; desktop-first
+**Constraints**: All pages private (Auth0); DuckDuckGo only for v1; manual edit deferred; no public URLs; desktop-first
 **Scale/Scope**: Extension of existing two-service app; adds ~4 new DB tables, ~6 new API endpoints, 2 new frontend pages/components, 1 new Agno agent
 
 **Environment variables (new)**:

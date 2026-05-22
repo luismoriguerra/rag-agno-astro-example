@@ -8,18 +8,18 @@ test.describe("chat page (UI)", () => {
   });
 
   test("renders composer and session actions", async ({ page }) => {
-    await expect(page.getByPlaceholder("Ask a question…")).toBeVisible();
+    await expect(page.getByPlaceholder("Ask a question...")).toBeVisible();
     await expect(page.getByRole("button", { name: "Send" })).toBeVisible();
     await expect(page.getByRole("button", { name: "New Chat" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Stop" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Delete active session" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Delete" })).toBeVisible();
   });
 
   test("shows restore or empty-state copy", async ({ page }) => {
     await expect(
       page
         .getByText("Ask a question to search the public web.")
-        .or(page.getByText("Restoring conversation…"))
+        .or(page.getByText("Restoring conversation..."))
         .or(page.getByRole("alert")),
     ).toBeVisible({ timeout: 15_000 });
   });
@@ -28,7 +28,7 @@ test.describe("chat page (UI)", () => {
     test.skip(!(await isBackendHealthy(request)), "Backend is not running on :8000");
     test.skip((await waitForChatSession(page)) !== "ready", "Chat session did not become ready");
 
-    const composer = page.getByPlaceholder("Ask a question…");
+    const composer = page.getByPlaceholder("Ask a question...");
     await expect(page.getByRole("button", { name: "Send" })).toBeDisabled();
     await composer.fill("Hello");
     await expect(page.getByRole("button", { name: "Send" })).toBeEnabled();
@@ -47,19 +47,19 @@ test.describe("chat page (with backend)", () => {
   test("creates a new chat session", async ({ page }) => {
     await page.getByRole("button", { name: "New Chat" }).click();
     await expect(page.getByText("Ask a question to search the public web.")).toBeVisible();
-    await expect(page.getByPlaceholder("Ask a question…")).toBeEnabled();
+    await expect(page.getByPlaceholder("Ask a question...")).toBeEnabled();
   });
 
   test("submits a message and shows assistant activity", async ({ page }) => {
     const question = "What is DuckDuckGo?";
-    await page.getByPlaceholder("Ask a question…").fill(question);
+    await page.getByPlaceholder("Ask a question...").fill(question);
     await page.getByRole("button", { name: "Send" }).click();
 
-    await expect(page.locator(".chat-message-user")).toContainText(question);
+    await expect(page.getByText(question)).toBeVisible({ timeout: 5_000 });
     await expect(
       page
         .getByText("Searching public web results")
-        .or(page.locator(".chat-message-assistant")),
+        .or(page.locator(".chat-markdown")),
     ).toBeVisible({ timeout: 30_000 });
   });
 });

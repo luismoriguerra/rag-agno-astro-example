@@ -70,6 +70,18 @@ List the authenticated user's research sessions, paginated.
 
 ---
 
+### DELETE /api/research/sessions/{session_id}
+
+Permanently delete a research session and all associated data (messages, article, versions, costs, runs).
+
+**Response** `204`: No content.
+
+**Errors**:
+- `404` — session not found or not owned by current user
+- `409` — an agent run is currently active for this session
+
+---
+
 ### GET /api/research/sessions/{session_id}
 
 Get a single research session with article and messages.

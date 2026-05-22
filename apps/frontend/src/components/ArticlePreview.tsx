@@ -23,7 +23,7 @@ function extractText(children: ReactNode): string {
     if (typeof child === "string") text += child;
     else if (typeof child === "number") text += String(child);
     else if (child && typeof child === "object" && "props" in child) {
-      text += extractText(child.props.children);
+      text += extractText((child as { props: { children?: ReactNode } }).props.children);
     }
   });
   return text;

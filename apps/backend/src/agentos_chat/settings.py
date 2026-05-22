@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     auth0_jwt_test_secret: str = "test-jwt-secret-at-least-32-characters-long"
     cors_origins: str = "http://localhost:4321"
     openrouter_api_key: str = ""
+    tavily_api_key: str = ""
     agno_telemetry: bool = False
     agent_model: str = "openrouter/google/gemini-2.0-flash-001"
     research_agent_model: str = "deepseek/deepseek-v4-flash:nitro"
@@ -33,6 +34,15 @@ class Settings(BaseSettings):
         if isinstance(value, str) and value.startswith("postgresql://"):
             return value.replace("postgresql://", "postgresql+asyncpg://", 1)
         return value
+
+    @property
+    def database_url_sync(self) -> str:
+        url = self.database_url
+        if "+asyncpg" in url:
+            url = url.replace("+asyncpg", "+psycopg")
+        elif url.startswith("postgresql://"):
+            url = url.replace("postgresql://", "postgresql+psycopg://", 1)
+        return url
 
     @property
     def cors_origin_list(self) -> list[str]:

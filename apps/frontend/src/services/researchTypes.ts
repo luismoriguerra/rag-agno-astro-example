@@ -42,6 +42,7 @@ export interface ResearchSessionSummary {
   idea: string;
   status: ArticleStatus;
   is_generating: boolean;
+  active_run_id: string | null;
   current_version: number | null;
   created_at: string;
   updated_at: string;

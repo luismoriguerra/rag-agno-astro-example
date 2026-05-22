@@ -28,6 +28,7 @@ from agentos_chat.models.research_schemas import (
     RetryResponse,
     SendMessageRequest,
     SendMessageResponse,
+    SessionCostSummary,
 )
 from agentos_chat.services.research_service import run_research
 from agentos_chat.services.run_events import run_event_bus
@@ -36,12 +37,16 @@ router = APIRouter(prefix="/api/research", tags=["research-sessions"])
 
 
 def _session_summary(session) -> ResearchSessionSummary:
-    is_generating = any(
-        (r.status if isinstance(r.status, str) else r.status.value) in (
-            ResearchRunStatusEnum.QUEUED.value, ResearchRunStatusEnum.RUNNING.value
-        )
-        for r in (session.runs or [])
-    )
+    active_statuses = (ResearchRunStatusEnum.QUEUED.value, ResearchRunStatusEnum.RUNNING.value)
+    active_run_id = None
+    is_generating = False
+    for r in session.runs or []:
+        run_status = r.status if isinstance(r.status, str) else r.status.value
+        if run_status in active_statuses:
+            is_generating = True
+            active_run_id = r.id
+            break
+
     current_version = None
     article_status = ArticleStatus.DRAFT
     if session.article:
@@ -57,6 +62,7 @@ def _session_summary(session) -> ResearchSessionSummary:
         idea=session.idea,
         status=article_status,
         is_generating=is_generating,
+        active_run_id=active_run_id,
         current_version=current_version,
         created_at=session.created_at,
         updated_at=session.updated_at,
@@ -99,18 +105,52 @@ async def create_research_session(
 async def list_research_sessions(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=50),
+    status: str | None = Query(None, pattern="^(draft|published)$"),
     identity: CurrentIdentity = Depends(get_current_identity),
     db: AsyncSession = Depends(get_db_session),
 ) -> ResearchSessionListResponse:
     user_identity = await get_or_create_identity(db, identity.auth_subject)
     repo = ResearchRepository(db)
-    sessions, total = await repo.list_sessions_paginated(user_identity.id, page, page_size)
+    sessions, total = await repo.list_sessions_paginated(
+        user_identity.id, page, page_size, status=status
+    )
     return ResearchSessionListResponse(
         sessions=[_session_summary(s) for s in sessions],
         total=total,
         page=page,
         page_size=page_size,
     )
+
+
+@router.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_research_session(
+    session_id: uuid.UUID,
+    identity: CurrentIdentity = Depends(get_current_identity),
+    db: AsyncSession = Depends(get_db_session),
+) -> None:
+    user_identity = await get_or_create_identity(db, identity.auth_subject)
+    repo = ResearchRepository(db)
+
+    try:
+        deleted = await repo.delete_session(session_id, user_identity.id)
+    except ValueError as exc:
+        if str(exc) == "run_in_progress":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "code": "run_in_progress",
+                    "message": "Cannot delete while an agent run is in progress.",
+                },
+            ) from exc
+        raise
+
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "not_found", "message": "Research session not found."},
+        )
+
+    await db.commit()
 
 
 @router.get("/sessions/{session_id}")
@@ -151,8 +191,14 @@ async def get_research_session(
                 id=latest.id,
                 version_number=latest.version_number,
                 markdown_content=latest.markdown_content,
-                status=ArticleStatus(latest.status if isinstance(latest.status, str) else latest.status.value),
-                change_source=ChangeSource(latest.change_source if isinstance(latest.change_source, str) else latest.change_source.value),
+                status=ArticleStatus(
+                    latest.status if isinstance(latest.status, str) else latest.status.value
+                ),
+                change_source=ChangeSource(
+                    latest.change_source
+                    if isinstance(latest.change_source, str)
+                    else latest.change_source.value
+                ),
                 created_at=latest.created_at,
             )
         article_schema = ArticleSchema(
@@ -161,10 +207,14 @@ async def get_research_session(
             latest_version=latest_version,
         )
 
+    cost_data = await repo.get_session_total_cost(session_id)
+    costs = SessionCostSummary(**cost_data) if cost_data["total_tokens"] > 0 else None
+
     return ResearchSessionDetailResponse(
         session=_session_summary(session),
         article=article_schema,
         messages=messages,
+        costs=costs,
     )
 
 
@@ -228,7 +278,14 @@ async def retry_research_session(
         )
 
     messages = await repo.list_messages(session_id)
-    last_user_msg = next((m for m in reversed(messages) if (m.role if isinstance(m.role, str) else m.role.value) == "user"), None)
+    last_user_msg = next(
+        (
+            m
+            for m in reversed(messages)
+            if (m.role if isinstance(m.role, str) else m.role.value) == "user"
+        ),
+        None,
+    )
     if not last_user_msg:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
