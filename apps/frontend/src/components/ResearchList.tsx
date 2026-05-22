@@ -128,7 +128,7 @@ export default function ResearchList() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3">
         <div className="flex gap-1" role="tablist">
           {TABS.map((t) => (
             <button
@@ -137,7 +137,7 @@ export default function ResearchList() {
               aria-selected={tab === t.key}
               data-testid={`tab-${t.key}`}
               onClick={() => switchTab(t.key)}
-              className={`text-xs font-semibold uppercase tracking-wider px-3 py-1.5 rounded-md transition-colors ${
+              className={`min-h-11 text-xs font-semibold uppercase tracking-wider px-3 py-1.5 rounded-md transition-colors ${
                 tab === t.key
                   ? "bg-[#44312a] text-white"
                   : "text-[#6b7280] hover:bg-gray-100"
@@ -180,10 +180,11 @@ export default function ResearchList() {
       <ul className="space-y-1" data-testid="session-list">
         {data && data.sessions.map((s) => (
           <li key={s.id} data-testid={`session-row-${s.id}`}>
-            <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-white hover:shadow-sm transition-all group border border-transparent hover:border-[#e5e2de]">
+            <div className="group px-3 py-1 rounded-lg hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-[#e5e2de]">
+            <div className="flex items-center gap-2 min-h-11 w-full">
               <a
                 href={`/research/${s.id}`}
-                className="flex-1 min-w-0 text-sm text-[#1a1a1a] truncate group-hover:text-[#44312a]"
+                className="flex-1 min-w-0 min-h-11 flex items-center text-sm text-[#1a1a1a] truncate group-hover:text-[#44312a]"
               >
                 {s.title}
               </a>
@@ -197,7 +198,7 @@ export default function ResearchList() {
                       data-testid={`delete-session-${s.id}`}
                       disabled={deletingId === s.id || s.is_generating}
                       title={s.is_generating ? "Cannot delete while generating" : "Delete draft"}
-                      className="p-1 rounded-md text-[#9aa8b8] hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-[#9aa8b8] disabled:hover:bg-transparent"
+                      className="min-h-11 min-w-11 flex items-center justify-center rounded-md text-[#9aa8b8] hover:text-red-600 hover:bg-red-50 max-md:opacity-100 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-[#9aa8b8] disabled:hover:bg-transparent"
                     >
                       <TrashIcon />
                     </button>
@@ -222,6 +223,7 @@ export default function ResearchList() {
                 </AlertDialog>
               </div>
             </div>
+            </div>
           </li>
         ))}
       </ul>
@@ -232,7 +234,7 @@ export default function ResearchList() {
             type="button"
             disabled={page <= 1 || loading}
             onClick={() => setPage((p) => p - 1)}
-            className="text-xs text-[#6b7280] hover:text-[#1a1a1a] disabled:opacity-40 disabled:cursor-not-allowed"
+            className="min-h-11 px-3 text-xs text-[#6b7280] hover:text-[#1a1a1a] disabled:opacity-40 disabled:cursor-not-allowed"
           >
             ← Previous
           </button>
@@ -243,7 +245,7 @@ export default function ResearchList() {
             type="button"
             disabled={page >= totalPages || loading}
             onClick={() => setPage((p) => p + 1)}
-            className="text-xs text-[#6b7280] hover:text-[#1a1a1a] disabled:opacity-40 disabled:cursor-not-allowed"
+            className="min-h-11 px-3 text-xs text-[#6b7280] hover:text-[#1a1a1a] disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Next →
           </button>

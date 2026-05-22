@@ -362,6 +362,13 @@
   background: #f5f3f0;
 }
 
-.article-prose td {
-  color: #374151;
+.article-prose table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.article-prose pre {
+  max-width: 100%;
 }
