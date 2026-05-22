@@ -47,12 +47,21 @@ class CreateResearchSessionResponse(BaseModel):
     run_id: UUID
 
 
+class SessionCostSummary(BaseModel):
+    total_tokens: int = 0
+    input_tokens: int = 0
+    output_tokens: int = 0
+    reasoning_tokens: int = 0
+    estimated_cost_usd: float = 0.0
+
+
 class ResearchSessionSummary(BaseModel):
     id: UUID
     title: str
     idea: str
     status: ArticleStatus
     is_generating: bool
+    active_run_id: UUID | None = None
     current_version: int | None
     created_at: datetime
     updated_at: datetime
@@ -94,6 +103,7 @@ class ResearchSessionDetailResponse(BaseModel):
     session: ResearchSessionSummary
     article: ArticleSchema | None = None
     messages: list[ResearchMessageSchema]
+    costs: SessionCostSummary | None = None
 
 
 class SendMessageRequest(BaseModel):

@@ -176,9 +176,7 @@ class ChangeSourceEnum(str, enum.Enum):
 
 class ResearchSession(Base):
     __tablename__ = "research_sessions"
-    __table_args__ = (
-        Index("ix_research_sessions_user_updated", "user_identity_id", "updated_at"),
-    )
+    __table_args__ = (Index("ix_research_sessions_user_updated", "user_identity_id", "updated_at"),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_identity_id: Mapped[uuid.UUID] = mapped_column(
@@ -193,15 +191,15 @@ class ResearchSession(Base):
 
     user_identity: Mapped[UserIdentity] = relationship()
     messages: Mapped[list["ResearchMessage"]] = relationship(back_populates="session")
-    article: Mapped["ResearchArticle | None"] = relationship(back_populates="session", uselist=False)
+    article: Mapped["ResearchArticle | None"] = relationship(
+        back_populates="session", uselist=False
+    )
     runs: Mapped[list["ResearchAgentRun"]] = relationship(back_populates="session")
 
 
 class ResearchMessage(Base):
     __tablename__ = "research_messages"
-    __table_args__ = (
-        Index("ix_research_messages_session_seq", "session_id", "sequence_index"),
-    )
+    __table_args__ = (Index("ix_research_messages_session_seq", "session_id", "sequence_index"),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     session_id: Mapped[uuid.UUID] = mapped_column(
@@ -222,9 +220,7 @@ class ResearchMessage(Base):
 
 class ResearchArticle(Base):
     __tablename__ = "research_articles"
-    __table_args__ = (
-        Index("ix_research_articles_session", "session_id", unique=True),
-    )
+    __table_args__ = (Index("ix_research_articles_session", "session_id", unique=True),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     session_id: Mapped[uuid.UUID] = mapped_column(
@@ -261,6 +257,26 @@ class ResearchArticleVersion(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     article: Mapped[ResearchArticle] = relationship(back_populates="versions")
+
+
+class ResearchCost(Base):
+    __tablename__ = "research_costs"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    session_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("research_sessions.id"), nullable=False
+    )
+    run_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("research_agent_runs.id"), nullable=False
+    )
+    model: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    agent_name: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    input_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    output_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    reasoning_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    estimated_cost_usd: Mapped[float] = mapped_column(nullable=False, default=0.0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class ResearchAgentRun(Base):

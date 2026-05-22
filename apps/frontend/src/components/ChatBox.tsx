@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ChatMessage, ChatSessionDetail, ChatUiState, SearchSource } from "../services/chatTypes";
+import type { ChatMessage as ChatMessageType, ChatSessionDetail, ChatUiState, SearchSource } from "../services/chatTypes";
+import ChatMessageBubble, { ThinkingIndicator } from "./ChatMessage";
 import { AuthApiError } from "../lib/auth0";
+import { getUrlParam, removeUrlParam } from "../lib/urlState";
 import {
   createSession,
   deleteSession,
@@ -12,7 +14,7 @@ import {
   submitMessage,
 } from "../services/chatApi";
 
-function emptyAssistant(): ChatMessage {
+function emptyAssistant(): ChatMessageType {
   return {
     id: crypto.randomUUID(),
     role: "assistant",
@@ -25,20 +27,16 @@ function emptyAssistant(): ChatMessage {
 }
 
 function readAuthErrorFromUrl(): string | null {
-  if (typeof window === "undefined") return null;
-  const params = new URLSearchParams(window.location.search);
-  const authError = params.get("auth_error");
+  const authError = getUrlParam("auth_error");
   if (!authError) return null;
-  params.delete("auth_error");
-  const next = `${window.location.pathname}${params.toString() ? `?${params}` : ""}`;
-  window.history.replaceState({}, "", next);
+  removeUrlParam("auth_error");
   return authError;
 }
 
 export default function ChatBox() {
   const [uiState, setUiState] = useState<ChatUiState>("restoring");
   const [session, setSession] = useState<ChatSessionDetail | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessageType[]>([]);
   const [draft, setDraft] = useState("");
   const [statusText, setStatusText] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -139,7 +137,7 @@ export default function ChatBox() {
     setError(null);
     setUiState("submitting");
     const assistant = emptyAssistant();
-    const userMessage: ChatMessage = {
+    const userMessage: ChatMessageType = {
       id: crypto.randomUUID(),
       role: "user",
       content,
@@ -225,17 +223,23 @@ export default function ChatBox() {
       error.includes("expired"));
 
   return (
-    <div className="chat-shell">
-      <header className="chat-header">
-        <h1>Chat</h1>
-        <div className="chat-actions">
-          <button type="button" onClick={() => void handleNewChat()} disabled={uiState === "restoring"}>
+    <div className="flex flex-col h-full bg-white">
+      <header className="px-5 py-3 border-b border-[#e5e2de] shrink-0 flex items-center justify-between">
+        <h1 className="text-lg font-semibold text-[#1a1a1a]">Chat</h1>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => void handleNewChat()}
+            disabled={uiState === "restoring"}
+            className="text-xs font-medium text-[#6b7280] border border-[#e5e2de] px-3 py-1.5 rounded-lg hover:bg-[#f3f4f6] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
             New Chat
           </button>
           <button
             type="button"
             onClick={() => void handleStop()}
             disabled={!activeRunId || uiState === "stopping"}
+            className="text-xs font-medium text-[#6b7280] border border-[#e5e2de] px-3 py-1.5 rounded-lg hover:bg-[#f3f4f6] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Stop
           </button>
@@ -243,59 +247,60 @@ export default function ChatBox() {
             type="button"
             onClick={() => void handleDelete()}
             disabled={!session || uiState === "restoring"}
+            className="text-xs font-medium text-red-500 border border-[#e5e2de] px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Delete active session
+            Delete
           </button>
-          <button type="button" onClick={handleSignOut}>
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="text-xs font-medium text-[#6b7280] border border-[#e5e2de] px-3 py-1.5 rounded-lg hover:bg-[#f3f4f6] transition-colors"
+          >
             Sign out
           </button>
         </div>
       </header>
 
       {error && (
-        <p role="alert" className="chat-error">
+        <div role="alert" className="px-5 py-2 bg-red-50 border-b border-red-200 text-sm text-red-700">
           {error}
           {showSignIn && (
             <>
               {" "}
-              <a href="/api/auth/login">Sign in again</a>
+              <a href="/api/auth/login" className="underline font-medium">Sign in again</a>
             </>
           )}
-        </p>
+        </div>
       )}
 
       <div
         ref={transcriptRef}
-        className="chat-transcript"
+        className="flex-1 overflow-y-auto px-5 py-4 space-y-4"
         aria-live="polite"
         aria-relevant="additions text"
       >
-        {uiState === "restoring" && <p className="chat-muted">Restoring conversation…</p>}
+        {uiState === "restoring" && (
+          <p className="text-sm text-[#6b7280] italic text-center py-8">Restoring conversation...</p>
+        )}
         {uiState === "empty" && !messages.length && (
-          <p className="chat-muted">Ask a question to search the public web.</p>
+          <p className="text-sm text-[#6b7280] italic text-center py-8">Ask a question to search the public web.</p>
         )}
         {messages.map((m) => (
-          <article key={m.id} className={`chat-message chat-message-${m.role}`}>
-            <strong>{m.role === "user" ? "You" : "Assistant"}</strong>
-            <p>{m.content || (m.status === "streaming" ? "…" : "")}</p>
-            {m.sources && m.sources.length > 0 && (
-              <ul className="chat-sources">
-                {m.sources.map((s) => (
-                  <li key={`${s.url}-${s.rank}`}>
-                    <a href={s.url} target="_blank" rel="noreferrer">
-                      {s.title}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </article>
+          <ChatMessageBubble
+            key={m.id}
+            role={m.role}
+            content={m.content || (m.status === "streaming" ? "..." : "")}
+            agentLabel="Assistant"
+            sources={m.sources}
+          />
         ))}
-        {statusText && <p className="chat-status">{statusText}</p>}
+        {(uiState === "thinking" || uiState === "streaming") && statusText && (
+          <ThinkingIndicator statusText={statusText} />
+        )}
       </div>
 
       <form
-        className="chat-composer"
+        className="px-5 py-3 border-t border-[#e5e2de] flex gap-2 shrink-0 bg-white"
         onSubmit={(e) => {
           e.preventDefault();
           void handleSubmit();
@@ -304,15 +309,20 @@ export default function ChatBox() {
         <label className="sr-only" htmlFor="chat-input">
           Message
         </label>
-        <textarea
+        <input
           id="chat-input"
+          type="text"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="Ask a question…"
-          rows={3}
+          placeholder="Ask a question..."
           disabled={uiState === "restoring" || !session}
+          className="flex-1 border border-[#e5e2de] rounded-xl px-3.5 py-2 text-sm bg-[#f9fafb] text-[#1a1a1a] placeholder:text-[#b0ada8] focus:outline-none focus:ring-2 focus:ring-[#10a37f]/20 focus:border-[#10a37f] focus:bg-white"
         />
-        <button type="submit" disabled={!draft.trim() || busy || !session}>
+        <button
+          type="submit"
+          disabled={!draft.trim() || busy || !session}
+          className="text-sm font-medium text-white bg-[#10a37f] hover:bg-[#0d8c6d] px-4 py-2 rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
           Send
         </button>
       </form>

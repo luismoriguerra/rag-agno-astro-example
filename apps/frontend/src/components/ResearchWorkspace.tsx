@@ -7,7 +7,9 @@ import {
   streamResearchRun,
   sendResearchMessage,
   retryResearchSession,
+  stopResearchRun,
 } from "../services/researchApi";
+import { setUrlParam, getUrlParam, removeUrlParam } from "../lib/urlState";
 import type { ResearchMessage, ResearchUiState } from "../services/researchTypes";
 
 interface ResearchWorkspaceProps {
@@ -24,11 +26,16 @@ export default function ResearchWorkspace({ sessionId }: ResearchWorkspaceProps)
   const [articleId, setArticleId] = useState<string | null>(null);
   const [versionNumber, setVersionNumber] = useState(0);
   const [articleStatus, setArticleStatus] = useState<"draft" | "published">("draft");
+  const [suggestedActions, setSuggestedActions] = useState<string[]>([]);
   const stopStreamRef = useRef<(() => void) | null>(null);
+  const activeRunIdRef = useRef<string | null>(null);
 
   const connectToStream = useCallback((runId: string) => {
     setUiState("thinking");
     stopStreamRef.current?.();
+    activeRunIdRef.current = runId;
+    setUrlParam("run_id", runId);
+
     stopStreamRef.current = streamResearchRun(runId, {
       onThinking: (message) => {
         setStatusText(message);
@@ -36,16 +43,42 @@ export default function ResearchWorkspace({ sessionId }: ResearchWorkspaceProps)
       },
       onReasoning: () => { setUiState("streaming"); },
       onToken: () => { setUiState("streaming"); setStatusText(""); },
-      onArticle: (article) => {
+      onArticle: async (article) => {
         setArticleMarkdown(article.markdown);
         setTitle(article.title);
         setVersionNumber(article.version);
         setArticleStatus("draft");
+        if (!articleId) {
+          try {
+            const detail = await getResearchSession(sessionId);
+            if (detail.article) setArticleId(detail.article.id);
+          } catch { /* will get it on next load */ }
+        }
       },
-      onDone: () => { setUiState("done"); setStatusText(""); },
+      onActions: (actions) => {
+        setSuggestedActions(actions);
+      },
+      onDone: async () => {
+        setUiState("done");
+        setStatusText("");
+        removeUrlParam("run_id");
+        try {
+          const detail = await getResearchSession(sessionId);
+          setMessages(detail.messages);
+          if (detail.article) {
+            setArticleId(detail.article.id);
+            setVersionNumber(detail.article.current_version);
+            if (detail.article.latest_version) {
+              setArticleMarkdown(detail.article.latest_version.markdown_content);
+              setArticleStatus(detail.article.latest_version.status);
+            }
+          }
+          setTitle(detail.session.title);
+        } catch { /* messages will load on next page visit */ }
+      },
       onError: (message) => { setError(message); setUiState("error"); setStatusText(""); },
     });
-  }, []);
+  }, [sessionId, articleId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -63,9 +96,9 @@ export default function ResearchWorkspace({ sessionId }: ResearchWorkspaceProps)
             setArticleStatus(detail.article.latest_version.status);
           }
         }
-        const runIdFromUrl = new URLSearchParams(window.location.search).get("run_id");
-        if (runIdFromUrl) {
-          connectToStream(runIdFromUrl);
+        const activeRunId = getUrlParam("run_id") || detail.session.active_run_id;
+        if (activeRunId) {
+          connectToStream(activeRunId);
         } else if (detail.session.is_generating) {
           setUiState("thinking");
           setStatusText("Research in progress...");
@@ -94,8 +127,10 @@ export default function ResearchWorkspace({ sessionId }: ResearchWorkspaceProps)
             messages={messages}
             uiState={uiState}
             statusText={statusText}
+            suggestedActions={suggestedActions}
             onSendMessage={async (content) => {
               try {
+                setSuggestedActions([]);
                 const res = await sendResearchMessage(sessionId, content);
                 setMessages((prev) => [
                   ...prev,
@@ -113,7 +148,15 @@ export default function ResearchWorkspace({ sessionId }: ResearchWorkspaceProps)
                 setError(err instanceof Error ? err.message : "Failed to send message.");
               }
             }}
-            onStop={() => stopStreamRef.current?.()}
+            onStop={async () => {
+              stopStreamRef.current?.();
+              if (activeRunIdRef.current) {
+                try { await stopResearchRun(activeRunIdRef.current); } catch { /* best-effort */ }
+              }
+              removeUrlParam("run_id");
+              setUiState("done");
+              setStatusText("");
+            }}
             onRetry={async () => {
               try {
                 const res = await retryResearchSession(sessionId);

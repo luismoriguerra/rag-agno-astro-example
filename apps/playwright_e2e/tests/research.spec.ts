@@ -14,9 +14,11 @@ async function createSessionAndWaitForArticle(page: import("@playwright/test").P
   await page.getByRole("button", { name: /research & draft/i }).click();
   await page.waitForURL(/\/research\/[\w-]+/, { timeout: 30_000 });
 
-  // Wait for the article to render — look for version badge (v1) which only appears when article exists
-  await expect(page.getByText(/^v1$/)).toBeVisible({ timeout: 240_000 });
+  // Wait for TL;DR text which confirms article rendered
+  await expect(page.getByText(/tl;dr/i)).toBeVisible({ timeout: 240_000 });
 }
+
+const CONCISE_SUFFIX = ". Be concise, just a couple of paragraphs per section.";
 
 // ── Home page UI ──
 
@@ -106,7 +108,7 @@ test.describe("research — article generation (with backend, long)", () => {
   test("generates an article with TL;DR", async ({ page }) => {
     test.setTimeout(300_000);
 
-    await createSessionAndWaitForArticle(page, "E2E comparison Deno vs Bun");
+    await createSessionAndWaitForArticle(page, "E2E comparison Deno vs Bun" + CONCISE_SUFFIX);
 
     const pageContent = await page.content();
     expect(pageContent.toLowerCase()).toContain("tl;dr");
@@ -123,7 +125,7 @@ test.describe("research — article refinement (with backend, long)", () => {
   test("sending a follow-up prompt updates the article", async ({ page }) => {
     test.setTimeout(360_000);
 
-    await createSessionAndWaitForArticle(page, "E2E OpenFGA authorization");
+    await createSessionAndWaitForArticle(page, "E2E OpenFGA authorization" + CONCISE_SUFFIX);
 
     // Capture the initial article text
     const articleBefore = await page.locator("main").textContent();
@@ -150,7 +152,7 @@ test.describe("research — article refinement (with backend, long)", () => {
   test("version badge increments after refinement", async ({ page }) => {
     test.setTimeout(360_000);
 
-    await createSessionAndWaitForArticle(page, "E2E version test topic");
+    await createSessionAndWaitForArticle(page, "E2E version test topic" + CONCISE_SUFFIX);
 
     // Should see v1 badge
     await expect(page.getByText(/v1/)).toBeVisible({ timeout: 10_000 });
@@ -178,7 +180,7 @@ test.describe("research — article controls (with backend, long)", () => {
   test("can toggle article status to published and back", async ({ page }) => {
     test.setTimeout(300_000);
 
-    await createSessionAndWaitForArticle(page, "E2E publish toggle test");
+    await createSessionAndWaitForArticle(page, "E2E publish toggle test" + CONCISE_SUFFIX);
 
     // Click Publish button
     const publishBtn = page.getByRole("button", { name: /publish/i });
@@ -196,7 +198,7 @@ test.describe("research — article controls (with backend, long)", () => {
   test("download button triggers .md download", async ({ page }) => {
     test.setTimeout(300_000);
 
-    await createSessionAndWaitForArticle(page, "E2E download test");
+    await createSessionAndWaitForArticle(page, "E2E download test" + CONCISE_SUFFIX);
 
     const downloadBtn = page.getByRole("button", { name: /\.md/i });
     await expect(downloadBtn).toBeVisible({ timeout: 10_000 });
@@ -239,5 +241,126 @@ test.describe("research — home page list (with backend)", () => {
         page.getByText(/drafts/i).or(page.getByText(/no research sessions/i)),
       ).toBeVisible();
     }
+  });
+});
+
+// ── Delete session ──
+
+test.describe("research — delete session (with backend)", () => {
+  test.beforeEach(async ({ request }) => {
+    test.skip(!(await isBackendHealthy(request)), "Backend is not running");
+  });
+
+  test("cancel confirm keeps the session in the list", async ({ page }) => {
+    test.setTimeout(60_000);
+    const uniqueTopic = `E2E keep ${Date.now()}`;
+    await page.goto("/");
+    await fillResearchIdea(page, uniqueTopic);
+    await page.getByRole("button", { name: /research & draft/i }).click();
+    await page.waitForURL(/\/research\/[\w-]+/, { timeout: 30_000 });
+
+    await page.goto("/");
+    const truncated = uniqueTopic.substring(0, 20);
+    await expect(page.getByText(truncated)).toBeVisible({ timeout: 15_000 });
+
+    const row = page.getByText(truncated).locator("..");
+    await row.hover();
+    const deleteBtn = page.getByRole("button", { name: new RegExp(`Delete ${truncated}`) });
+    await deleteBtn.click();
+
+    // AlertDialog is now visible — click Cancel
+    await expect(page.getByRole("alertdialog")).toBeVisible({ timeout: 5_000 });
+    await page.getByRole("button", { name: /cancel/i }).click();
+
+    await expect(page.getByText(truncated)).toBeVisible({ timeout: 5_000 });
+  });
+
+  test("confirm delete removes session from list", async ({ page }) => {
+    test.setTimeout(60_000);
+    const uniqueTopic = `E2E del ${Date.now()}`;
+    await page.goto("/");
+    await fillResearchIdea(page, uniqueTopic);
+    await page.getByRole("button", { name: /research & draft/i }).click();
+    await page.waitForURL(/\/research\/[\w-]+/, { timeout: 30_000 });
+
+    await page.goto("/");
+    const truncated = uniqueTopic.substring(0, 20);
+    await expect(page.getByText(truncated)).toBeVisible({ timeout: 15_000 });
+
+    const row = page.getByText(truncated).locator("..");
+    await row.hover();
+    const deleteBtn = page.getByRole("button", { name: new RegExp(`Delete ${truncated}`) });
+    await deleteBtn.click();
+
+    // AlertDialog is now visible — click Delete to confirm
+    await expect(page.getByRole("alertdialog")).toBeVisible({ timeout: 5_000 });
+    await page.getByRole("alertdialog").getByRole("button", { name: /delete/i }).click();
+
+    await expect(page.getByText(truncated)).toBeHidden({ timeout: 15_000 });
+  });
+});
+
+// ── Tab switching ──
+
+test.describe("research — tab switching (with backend)", () => {
+  test.beforeEach(async ({ request }) => {
+    test.skip(!(await isBackendHealthy(request)), "Backend is not running");
+  });
+
+  test("drafts tab is active by default", async ({ page }) => {
+    await page.goto("/");
+    const draftsTab = page.getByTestId("tab-draft");
+    const publishedTab = page.getByTestId("tab-published");
+    await expect(draftsTab).toBeVisible({ timeout: 10_000 });
+    await expect(publishedTab).toBeVisible({ timeout: 5_000 });
+    await expect(draftsTab).toHaveAttribute("aria-selected", "true");
+    await expect(publishedTab).toHaveAttribute("aria-selected", "false");
+  });
+
+  test("switching to published tab updates the list", async ({ page }) => {
+    await page.goto("/");
+    const draftsTab = page.getByTestId("tab-draft");
+    const publishedTab = page.getByTestId("tab-published");
+    await expect(draftsTab).toBeVisible({ timeout: 10_000 });
+
+    await publishedTab.click();
+    await expect(publishedTab).toHaveAttribute("aria-selected", "true");
+    await expect(draftsTab).toHaveAttribute("aria-selected", "false");
+
+    await page.waitForTimeout(1_000);
+    const sessionList = page.getByTestId("session-list");
+    await expect(sessionList).toBeVisible({ timeout: 5_000 });
+  });
+
+  test("switching back to drafts tab restores draft sessions", async ({ page }) => {
+    test.setTimeout(60_000);
+    const uniqueTopic = `E2E tabs ${Date.now()}`;
+    await page.goto("/");
+    await fillResearchIdea(page, uniqueTopic);
+    await page.getByRole("button", { name: /research & draft/i }).click();
+    await page.waitForURL(/\/research\/[\w-]+/, { timeout: 30_000 });
+
+    await page.goto("/");
+    const truncated = uniqueTopic.substring(0, 20);
+    await expect(page.getByText(truncated)).toBeVisible({ timeout: 15_000 });
+
+    await page.getByTestId("tab-published").click();
+    await page.waitForTimeout(1_000);
+
+    await page.getByTestId("tab-draft").click();
+    await expect(page.getByText(truncated)).toBeVisible({ timeout: 10_000 });
+  });
+
+  test("tab state persists in URL", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByTestId("tab-draft")).toBeVisible({ timeout: 10_000 });
+
+    await page.getByTestId("tab-published").click();
+    await page.waitForTimeout(500);
+    expect(page.url()).toContain("tab=published");
+
+    await page.getByTestId("tab-draft").click();
+    await page.waitForTimeout(500);
+    expect(page.url()).not.toContain("tab=published");
   });
 });

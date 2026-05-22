@@ -7,8 +7,15 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from agentos_chat.api import messages, runs, sessions, stream
-from agentos_chat.api import research_articles, research_sessions, research_stream
+from agentos_chat.api import (
+    messages,
+    research_articles,
+    research_sessions,
+    research_stream,
+    runs,
+    sessions,
+    stream,
+)
 from agentos_chat.auth.jwt_middleware import build_jwt_middleware_kwargs, fetch_jwks_pem_keys_sync
 from agentos_chat.models.schemas import HealthResponse
 from agentos_chat.observability.langwatch import configure_langwatch
@@ -57,10 +64,14 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
             code=code,
             path=str(request.url.path),
         )
-        content = detail if isinstance(exc.detail, dict) else {
-            "code": "auth_failed",
-            "message": str(exc.detail),
-        }
+        content = (
+            detail
+            if isinstance(exc.detail, dict)
+            else {
+                "code": "auth_failed",
+                "message": str(exc.detail),
+            }
+        )
         return JSONResponse(status_code=exc.status_code, content=content)
     content = exc.detail if isinstance(exc.detail, dict) else {"detail": exc.detail}
     return JSONResponse(status_code=exc.status_code, content=content)

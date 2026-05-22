@@ -61,8 +61,10 @@ export async function createResearchSession(
 export async function listResearchSessions(
   page = 1,
   pageSize = 10,
+  status?: "draft" | "published",
 ): Promise<ResearchSessionListResponse> {
   const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
+  if (status) params.set("status", status);
   const res = await authFetch(`${API_BASE}/api/research/sessions?${params}`);
   if (!res.ok) throw await parseError(res);
   return res.json() as Promise<ResearchSessionListResponse>;
@@ -76,11 +78,19 @@ export async function getResearchSession(
   return res.json() as Promise<ResearchSessionDetail>;
 }
 
+export async function deleteResearchSession(sessionId: string): Promise<void> {
+  const res = await authFetch(`${API_BASE}/api/research/sessions/${sessionId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw await parseError(res);
+}
+
 export type ResearchStreamHandlers = {
   onThinking: (message: string) => void;
   onReasoning: (content: string) => void;
   onToken: (text: string) => void;
   onArticle: (article: ResearchArticleEvent) => void;
+  onActions: (actions: string[]) => void;
   onDone: (status: string) => void;
   onError: (message: string) => void;
 };
@@ -143,6 +153,7 @@ export function streamResearchRun(
           case "token":
             handlers.onToken(String(payload.text ?? ""));
             break;
+          case "article_preview":
           case "article":
             handlers.onArticle({
               markdown: String(payload.markdown ?? ""),
@@ -150,9 +161,21 @@ export function streamResearchRun(
               title: String(payload.title ?? ""),
             });
             break;
-          case "done":
+          case "actions": {
+            const actions = payload.actions;
+            if (Array.isArray(actions)) {
+              handlers.onActions(actions.map(String));
+            }
+            break;
+          }
+          case "done": {
+            const doneActions = payload.actions;
+            if (Array.isArray(doneActions) && doneActions.length > 0) {
+              handlers.onActions(doneActions.map(String));
+            }
             finish(String(payload.status ?? "completed"));
             break;
+          }
           case "error":
             finished = true;
             handlers.onError(String(payload.message ?? "Stream failed."));
