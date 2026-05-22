@@ -18,12 +18,14 @@ class RunEventBus:
     queues: dict[UUID, asyncio.Queue[RunEvent | None]] = field(default_factory=dict)
     history: dict[UUID, list[RunEvent]] = field(default_factory=dict)
     cancel_flags: dict[UUID, bool] = field(default_factory=dict)
+    closed: set[UUID] = field(default_factory=set)
 
     def create(self, run_id: UUID) -> asyncio.Queue[RunEvent | None]:
         queue: asyncio.Queue[RunEvent | None] = asyncio.Queue()
         self.queues[run_id] = queue
         self.history[run_id] = []
         self.cancel_flags[run_id] = False
+        self.closed.discard(run_id)
         return queue
 
     def get_queue(self, run_id: UUID) -> asyncio.Queue[RunEvent | None] | None:
@@ -43,8 +45,10 @@ class RunEventBus:
             await queue.put(item)
 
     async def iter_events(self, run_id: UUID) -> AsyncIterator[RunEvent | None]:
+        already_closed = run_id in self.closed
+
         queue = self.queues.get(run_id)
-        if queue is None:
+        if queue is None and not already_closed:
             queue = asyncio.Queue()
             self.queues[run_id] = queue
             self.history.setdefault(run_id, [])
@@ -53,11 +57,16 @@ class RunEventBus:
         for item in list(self.history.get(run_id, [])):
             yield item
 
-        while True:
-            item = await queue.get()
-            yield item
-            if item is None:
-                break
+        if already_closed:
+            yield None
+            return
+
+        if queue:
+            while True:
+                item = await queue.get()
+                yield item
+                if item is None:
+                    break
 
     async def close(self, run_id: UUID) -> None:
         queue = self.queues.get(run_id)
@@ -65,7 +74,7 @@ class RunEventBus:
             await queue.put(None)
         self.queues.pop(run_id, None)
         self.cancel_flags.pop(run_id, None)
-        # Keep history so SSE clients that connect after the run finishes can replay events.
+        self.closed.add(run_id)
 
 
 run_event_bus = RunEventBus()

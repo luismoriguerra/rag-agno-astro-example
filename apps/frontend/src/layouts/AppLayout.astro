@@ -1,0 +1,25 @@
+---
+import Navbar from "../components/Navbar";
+import "../styles/global.css";
+
+interface Props {
+  title?: string;
+}
+
+const { title = "Lumen" } = Astro.props;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <slot name="head" />
+  </head>
+  <body class="bg-[#faf9f7] text-[#1a1a1a] min-h-screen">
+    <Navbar client:load />
+    <main>
+      <slot />
+    </main>
+  </body>
+</html>

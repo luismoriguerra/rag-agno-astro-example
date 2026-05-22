@@ -31,11 +31,11 @@ export async function assertNoChatUiError(page: Page): Promise<void> {
 
 /** Waits until restore finishes: composer enabled (session ready) or error shown. */
 export async function waitForChatSession(page: Page): Promise<"ready" | "error"> {
-  const composer = page.getByPlaceholder("Ask a question…");
+  const composer = page.getByPlaceholder("Ask a question...");
   await expect(composer).toBeVisible({ timeout: 15_000 });
 
   await page
-    .getByText("Restoring conversation…")
+    .getByText("Restoring conversation...")
     .waitFor({ state: "hidden", timeout: 20_000 })
     .catch(() => undefined);
 
@@ -53,7 +53,7 @@ export async function waitForAssistantAnswer(
   page: Page,
   timeoutMs = ASSISTANT_ANSWER_TIMEOUT_MS,
 ): Promise<string> {
-  const assistantReply = page.locator(".chat-message-assistant p").last();
+  const assistantReply = page.locator(".chat-markdown").last();
 
   await expect
     .poll(
@@ -64,7 +64,7 @@ export async function waitForAssistantAnswer(
         }
 
         const text = (await assistantReply.textContent())?.trim() ?? "";
-        return text.length > 8 && text !== "…";
+        return text.length > 8 && text !== "…" && text !== "...";
       },
       {
         timeout: timeoutMs,

@@ -15,6 +15,7 @@ def database_connect_args(database_url: str) -> dict:
         return {"ssl": ctx}
     return {}
 
+
 _engine = None
 _session_factory: async_sessionmaker[AsyncSession] | None = None
 

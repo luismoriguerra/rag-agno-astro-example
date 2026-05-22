@@ -1,4 +1,5 @@
 .PHONY: install dev check test db-up db-down migrate smoke-local \
+	e2e-install e2e e2e-headed e2e-ui e2e-auth e2e-research e2e-research-headed \
 	railway-preflight railway-up railway-cleanup railway-deploy railway-status railway-smoke \
 	railway-logs-backend railway-logs-frontend
 
@@ -18,15 +19,25 @@ e2e-install:
 	cd $(E2E_DIR) && npm install
 	cd $(E2E_DIR) && npx playwright install chromium
 
+e2e-auth: ## Open real Chrome for manual login — saves cookies for tests
+	cd $(E2E_DIR) && npx tsx scripts/save-auth.ts
+	@echo "Auth saved. Run 'make e2e' or 'make e2e-research-headed' to execute tests."
+
 e2e:
-	@echo "Requires: make db-up migrate, make dev (or dev-frontend + dev-backend)"
-	cd $(E2E_DIR) && npm test
+	@echo "Requires: make db-up migrate, make dev, make e2e-auth (first time)"
+	cd $(E2E_DIR) && npx playwright test --project=chromium
 
 e2e-headed:
-	cd $(E2E_DIR) && npm run test:headed
+	cd $(E2E_DIR) && npx playwright test --headed --project=chromium
 
 e2e-ui:
-	cd $(E2E_DIR) && npm run test:ui
+	cd $(E2E_DIR) && npx playwright test --ui --project=chromium
+
+e2e-research: ## Run only research e2e tests
+	cd $(E2E_DIR) && npx playwright test tests/research.spec.ts --project=chromium
+
+e2e-research-headed: ## Run research e2e tests headed with workers=1
+	cd $(E2E_DIR) && npx playwright test tests/research.spec.ts --headed --project=chromium --workers=1
 
 db-up:
 	docker compose up -d postgres

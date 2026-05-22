@@ -1,0 +1,18 @@
+---
+import AppLayout from "../../layouts/AppLayout.astro";
+import ResearchWorkspace from "../../components/ResearchWorkspace";
+
+const { sessionId } = Astro.params;
+---
+
+<AppLayout title="Lumen — Research">
+  <Fragment slot="head">
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css"
+    />
+  </Fragment>
+  <div class="h-[calc(100vh-53px)]">
+    <ResearchWorkspace client:load sessionId={sessionId!} />
+  </div>
+</AppLayout>
