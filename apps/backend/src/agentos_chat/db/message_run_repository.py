@@ -35,6 +35,12 @@ class MessageRunRepository:
         )
         return list(result.scalars().all())
 
+    async def get_message_by_id(self, message_id: uuid.UUID) -> ChatMessage | None:
+        result = await self.db.execute(
+            select(ChatMessage).where(ChatMessage.id == message_id)
+        )
+        return result.scalar_one_or_none()
+
     async def create_user_message(
         self, session_id: uuid.UUID, content: str, sequence_index: int
     ) -> ChatMessage:
@@ -158,3 +164,35 @@ class MessageRunRepository:
             .order_by(SearchResult.rank)
         )
         return list(result.scalars().all())
+
+    _ACTIVE_STATUSES = (
+        RunStatusEnum.QUEUED,
+        RunStatusEnum.RUNNING,
+        RunStatusEnum.STOPPING,
+    )
+
+    async def has_active_chat_run(self, session_id: uuid.UUID) -> bool:
+        result = await self.db.execute(
+            select(func.count())
+            .select_from(AgentRun)
+            .where(
+                AgentRun.session_id == session_id,
+                AgentRun.status.in_(self._ACTIVE_STATUSES),
+            )
+        )
+        return int(result.scalar_one()) > 0
+
+    async def count_active_runs_for_user(self, user_identity_id: uuid.UUID) -> int:
+        from agentos_chat.db.models import ChatSession, SessionStatusEnum
+
+        result = await self.db.execute(
+            select(func.count())
+            .select_from(AgentRun)
+            .join(ChatSession, ChatSession.id == AgentRun.session_id)
+            .where(
+                ChatSession.user_identity_id == user_identity_id,
+                ChatSession.status != SessionStatusEnum.DELETED,
+                AgentRun.status.in_(self._ACTIVE_STATUSES),
+            )
+        )
+        return int(result.scalar_one())

@@ -6,7 +6,7 @@ alwaysApply: true
 
 # web0personal-vector Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-05-21
+Auto-generated from all feature plans. Last updated: 2026-05-25
 
 ## Active Technologies
 - Python 3.12 + FastAPI, Agno, `langwatch`, `openinference-instrumentation-agno` (new); (002-langwatch-backend)
@@ -17,6 +17,8 @@ Auto-generated from all feature plans. Last updated: 2026-05-21
 - PostgreSQL — new research tables alongside existing chat tables; no vector search for this feature (005-research-generator)
 - Node.js 22 and TypeScript 5.x for frontend only; Python backend unchanged + Astro 5, React 19 (islands), Tailwind CSS 4 (`@tailwindcss/vite`), existing Radix Alert Dialog; no new npm packages required for v1 (006-mobile-pages)
 - N/A — presentation-only; no PostgreSQL or API changes (006-mobile-pages)
+- Python 3.12 (backend only; frontend unchanged) + FastAPI, Agno 2.4+ / AgentOS, OpenRouter, TavilyTools, Pydantic, SQLAlchemy async, Alembic, LangWatch + openinference-instrumentation-agno (007-backend-agentic-refactor)
+- PostgreSQL — existing domain tables + Agno `PostgresDb` session tables (`chat_agno_sessions`, `research_agno_sessions`); no pgvector changes (007-backend-agentic-refactor)
 
 - Python 3.12 for backend; Node.js 22 and TypeScript 5.x for frontend + FastAPI, Agno/AgentOS, Agno DuckDuckGoTools, Pydantic, PostgreSQL (001-agentos-chat-search)
 
@@ -56,9 +58,9 @@ specs/
 - Deployment: local-first Makefile commands for Railway; no GitHub Actions in this release.
 
 ## Recent Changes
+- 007-backend-agentic-refactor: Added Python 3.12 (backend only; frontend unchanged) + FastAPI, Agno 2.4+ / AgentOS, OpenRouter, TavilyTools, Pydantic, SQLAlchemy async, Alembic, LangWatch + openinference-instrumentation-agno
+- 007-backend-agentic-refactor: Added [e.g., PostgreSQL + pgvector, object storage, files or N/A]
 - 006-mobile-pages: Added Node.js 22 and TypeScript 5.x for frontend only; Python backend unchanged + Astro 5, React 19 (islands), Tailwind CSS 4 (`@tailwindcss/vite`), existing Radix Alert Dialog; no new npm packages required for v1
-- 005-research-generator: Added Python 3.12 for backend; Node.js 22 and TypeScript 5.x for frontend + FastAPI, Agno/AgentOS, Agno DuckDuckGoTools, OpenRouter (`deepseek/deepseek-v4-pro:nitro`), Pydantic, SQLAlchemy, Alembic, Astro, React (island components), LangWatch
-- 003-auth0-integration: Added Python 3.12 (backend); Node.js 22 + TypeScript 5.x (frontend) + FastAPI, Agno (`JWTMiddleware`), Auth0 Terraform provider (`auth0/auth0`),
 
 
 <!-- MANUAL ADDITIONS START -->

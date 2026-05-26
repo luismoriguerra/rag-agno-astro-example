@@ -359,6 +359,9 @@ class ResearchRepository:
         await self.db.flush()
 
     async def has_active_run(self, session_id: uuid.UUID) -> bool:
+        return await self.has_active_research_run(session_id)
+
+    async def has_active_research_run(self, session_id: uuid.UUID) -> bool:
         stmt = (
             select(func.count())
             .select_from(ResearchAgentRun)
@@ -368,12 +371,32 @@ class ResearchRepository:
                     [
                         ResearchRunStatusEnum.QUEUED,
                         ResearchRunStatusEnum.RUNNING,
+                        ResearchRunStatusEnum.STOPPING,
                     ]
                 ),
             )
         )
         result = await self.db.execute(stmt)
         return result.scalar_one() > 0
+
+    async def count_active_research_runs_for_user(self, user_identity_id: uuid.UUID) -> int:
+        stmt = (
+            select(func.count())
+            .select_from(ResearchAgentRun)
+            .join(ResearchSession, ResearchSession.id == ResearchAgentRun.session_id)
+            .where(
+                ResearchSession.user_identity_id == user_identity_id,
+                ResearchAgentRun.status.in_(
+                    [
+                        ResearchRunStatusEnum.QUEUED,
+                        ResearchRunStatusEnum.RUNNING,
+                        ResearchRunStatusEnum.STOPPING,
+                    ]
+                ),
+            )
+        )
+        result = await self.db.execute(stmt)
+        return int(result.scalar_one())
 
     async def get_active_run_id(self, session_id: uuid.UUID) -> uuid.UUID | None:
         stmt = (
