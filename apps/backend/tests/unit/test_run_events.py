@@ -1,11 +1,11 @@
 """Unit tests for RunEventBus — covers late reconnect fix and cancel flags."""
 
 import asyncio
+from uuid import uuid4
 
 import pytest
 
-from agentos_chat.services.run_events import RunEventBus, RunEvent
-from uuid import uuid4
+from agentos_chat.services.run_events import RunEvent, RunEventBus
 
 
 @pytest.fixture

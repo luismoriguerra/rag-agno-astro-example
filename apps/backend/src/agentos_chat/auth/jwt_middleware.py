@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
+import logging
 from typing import Any
 
 from agentos_chat.settings import Settings
+
+logger = logging.getLogger(__name__)
 
 CHAT_API_SCOPE = "access:api"
 
@@ -18,6 +22,8 @@ CHAT_ROUTE_PATTERNS = (
     "GET /api/chat/runs/*/stream",
     "POST /api/chat/runs/*/stop",
 )
+
+JWKS_REFRESH_INTERVAL_SECONDS = 3600
 
 
 def build_chat_scope_mappings() -> dict[str, list[str]]:
@@ -45,6 +51,23 @@ def fetch_jwks_pem_keys_sync(jwks_url: str) -> list[str]:
         response.raise_for_status()
         jwks_data = response.json()
     return _parse_jwks_pem_keys(jwks_data)
+
+
+async def refresh_jwks_keys(verification_keys: list[str], jwks_url: str) -> None:
+    """Replace JWKS verification keys in place for middleware hot refresh."""
+    try:
+        new_keys = await fetch_jwks_pem_keys(jwks_url)
+        verification_keys.clear()
+        verification_keys.extend(new_keys)
+        logger.info("JWKS keys refreshed (%d keys)", len(new_keys))
+    except Exception:  # noqa: BLE001
+        logger.exception("JWKS refresh failed")
+
+
+async def jwks_refresh_loop(verification_keys: list[str], jwks_url: str) -> None:
+    while True:
+        await asyncio.sleep(JWKS_REFRESH_INTERVAL_SECONDS)
+        await refresh_jwks_keys(verification_keys, jwks_url)
 
 
 def _parse_jwks_pem_keys(jwks_data: dict[str, Any]) -> list[str]:
@@ -94,10 +117,6 @@ def build_jwt_middleware_kwargs(
     settings: Settings, verification_keys: list[str] | None = None
 ) -> dict[str, object]:
     """Kwargs for ``app.add_middleware(JWTMiddleware, **build_jwt_middleware_kwargs(...))``."""
-    # Auth0 (and OIDC) encode scopes as a space-delimited string in the ``scope`` claim.
-    # Agno JWTMiddleware treats string scopes as a single list entry, so RBAC would fail
-    # for tokens like ``openid profile email access:api``. Scope enforcement lives in
-    # ``auth.dependencies`` after normalizing ``request.state.scopes``.
     jwt_kwargs: dict[str, object] = {
         "validate": True,
         "authorization": False,
