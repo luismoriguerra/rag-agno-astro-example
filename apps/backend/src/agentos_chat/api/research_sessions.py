@@ -30,6 +30,7 @@ from agentos_chat.models.research_schemas import (
     SendMessageResponse,
     SessionCostSummary,
 )
+from agentos_chat.services.concurrency import ConcurrencyConflict, assert_can_start_run
 from agentos_chat.services.research_service import run_research
 from agentos_chat.services.run_events import run_event_bus
 
@@ -79,6 +80,19 @@ async def create_research_session(
     repo = ResearchRepository(db)
 
     session = await repo.create_session(user_identity.id, body.idea)
+
+    try:
+        await assert_can_start_run(
+            db,
+            user_identity_id=user_identity.id,
+            session_id=session.id,
+            workflow="research",
+        )
+    except ConcurrencyConflict as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": exc.code, "message": exc.message},
+        ) from exc
 
     user_msg = await repo.create_message(
         session.id,
@@ -235,11 +249,18 @@ async def send_research_message(
             detail={"code": "not_found", "message": "Research session not found."},
         )
 
-    if await repo.has_active_run(session_id):
+    try:
+        await assert_can_start_run(
+            db,
+            user_identity_id=user_identity.id,
+            session_id=session_id,
+            workflow="research",
+        )
+    except ConcurrencyConflict as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail={"code": "run_in_progress", "message": "An agent run is already in progress."},
-        )
+            detail={"code": exc.code, "message": exc.message},
+        ) from exc
 
     user_msg = await repo.create_message(
         session_id,
@@ -271,11 +292,18 @@ async def retry_research_session(
             detail={"code": "not_found", "message": "Research session not found."},
         )
 
-    if await repo.has_active_run(session_id):
+    try:
+        await assert_can_start_run(
+            db,
+            user_identity_id=user_identity.id,
+            session_id=session_id,
+            workflow="research",
+        )
+    except ConcurrencyConflict as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail={"code": "run_in_progress", "message": "An agent run is already in progress."},
-        )
+            detail={"code": exc.code, "message": exc.message},
+        ) from exc
 
     messages = await repo.list_messages(session_id)
     last_user_msg = next(

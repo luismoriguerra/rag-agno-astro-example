@@ -1,110 +1,64 @@
-from agentos_chat.agents.research_agent import parse_research_output
+from agentos_chat.agents.research_agent import ResearchResult, parse_team_output
 
 
-class TestParseResearchOutput:
-    def test_full_output_with_all_delimiters(self):
-        text = """
----CHAT_START---
-Here is what I found about the topic.
----CHAT_END---
+class TestResearchResult:
+    def test_defaults(self):
+        result = ResearchResult()
+        assert result.chat_response == ""
+        assert result.article_markdown == ""
+        assert result.suggested_actions == []
 
----ARTICLE_START---
-# My Article
-
-## TL;DR
-A brief summary.
-
-## Sources
-1. https://example.com
----ARTICLE_END---
-
----ACTIONS_START---
-["Add benchmarks", "Compare with X", "Add code examples"]
----ACTIONS_END---
-"""
-        result = parse_research_output(text)
-        assert result.chat_response == "Here is what I found about the topic."
+    def test_full_structured_output(self):
+        result = ResearchResult(
+            chat_response="Here is what I found.",
+            article_markdown="# My Article\n\n## TL;DR\nSummary.",
+            article_title="My Article",
+            suggested_actions=["Add benchmarks", "Compare with X"],
+        )
+        assert result.chat_response == "Here is what I found."
         assert result.article_markdown.startswith("# My Article")
-        assert "TL;DR" in result.article_markdown
         assert result.article_title == "My Article"
-        assert result.suggested_actions == [
-            "Add benchmarks",
-            "Compare with X",
-            "Add code examples",
-        ]
+        assert len(result.suggested_actions) == 2
 
     def test_chat_only_response(self):
-        text = """
----CHAT_START---
-Here is a summary of the article. It covers three main topics.
----CHAT_END---
-"""
-        result = parse_research_output(text)
-        assert result.chat_response == (
-            "Here is a summary of the article. It covers three main topics."
-        )
+        result = ResearchResult(chat_response="Summary only.")
         assert result.article_markdown == ""
         assert result.suggested_actions == []
 
-    def test_article_without_chat(self):
-        text = """
----ARTICLE_START---
-# Test Article
 
-## TL;DR
-Summary here.
----ARTICLE_END---
-"""
-        result = parse_research_output(text)
-        assert result.article_markdown.startswith("# Test Article")
-        assert result.article_title == "Test Article"
-        assert result.chat_response == "Done."
+class TestParseTeamOutput:
+    def test_article_with_chat_preamble(self):
+        text = (
+            "Here is what I found about Redis.\n\n"
+            "# Redis: An In-Memory Data Store\n\n"
+            "## TL;DR\nRedis is fast.\n\n"
+            "## Sources\n1. https://redis.io\n"
+        )
+        result = parse_team_output(text)
+        assert result.chat_response == "Here is what I found about Redis."
+        assert result.article_markdown.startswith("# Redis")
+        assert result.article_title == "Redis: An In-Memory Data Store"
+        assert len(result.suggested_actions) > 0
 
-    def test_no_delimiters_treats_as_chat(self):
-        text = "# Raw Article\n\n## TL;DR\nSome content."
-        result = parse_research_output(text, fallback_title="Fallback")
+    def test_chat_only_no_h1(self):
+        text = "Here is a summary of the article. No changes needed."
+        result = parse_team_output(text)
+        assert result.chat_response == text
         assert result.article_markdown == ""
-        assert result.article_title == "Fallback"
-        assert "Raw Article" in result.chat_response
+        assert result.suggested_actions == []
 
     def test_empty_text(self):
-        result = parse_research_output("", fallback_title="Empty")
+        result = parse_team_output("", fallback_title="Fallback")
         assert result.chat_response == "Done."
-        assert result.article_markdown == ""
-        assert result.article_title == "Empty"
 
-    def test_actions_invalid_json(self):
-        text = """
----CHAT_START---
-Response here.
----CHAT_END---
+    def test_article_without_chat_preamble(self):
+        text = "# Direct Article\n\n## TL;DR\nContent here.\n"
+        result = parse_team_output(text, fallback_title="Fallback")
+        assert result.article_markdown.startswith("# Direct Article")
+        assert result.article_title == "Direct Article"
+        assert "Direct Article" in result.chat_response
 
----ACTIONS_START---
-not valid json
----ACTIONS_END---
-"""
-        result = parse_research_output(text)
-        assert result.chat_response == "Response here."
-        assert result.suggested_actions == []
-
-    def test_actions_limits_to_five(self):
-        text = """
----CHAT_START---
-Ok.
----CHAT_END---
-
----ACTIONS_START---
-["a", "b", "c", "d", "e", "f", "g"]
----ACTIONS_END---
-"""
-        result = parse_research_output(text)
-        assert len(result.suggested_actions) == 5
-
-    def test_fallback_title_when_no_h1(self):
-        text = """
----ARTICLE_START---
-Some content without an H1 heading.
----ARTICLE_END---
-"""
-        result = parse_research_output(text, fallback_title="My Fallback")
-        assert result.article_title == "My Fallback"
+    def test_fallback_title(self):
+        text = "Some conversation."
+        result = parse_team_output(text, fallback_title="My Topic")
+        assert result.chat_response == text

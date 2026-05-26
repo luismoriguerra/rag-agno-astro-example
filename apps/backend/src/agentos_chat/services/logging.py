@@ -65,3 +65,11 @@ def log_auth_failure(*, status_code: int, code: str, path: str) -> None:
         code=code,
         path=path,
     )
+
+
+def log_orphan_cleanup(chat_count: int, research_count: int) -> None:
+    log_event(
+        "orphan_cleanup",
+        chat_runs=chat_count,
+        research_runs=research_count,
+    )
