@@ -228,7 +228,6 @@ class ResearchRunHandler:
                             stream_events=True,
                             session_id=str(session_id),
                             user_id=str(user_identity_id),
-                            add_history_to_context=True,
                         ):
                             if run_event_bus.is_cancelled(run_id):
                                 break
