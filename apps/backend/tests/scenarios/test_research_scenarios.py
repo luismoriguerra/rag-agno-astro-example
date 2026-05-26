@@ -17,7 +17,8 @@ import uuid
 import pytest
 import scenario
 
-from agentos_chat.agents.research_agent import build_research_team
+from agentos_chat.agents.research_agent import create_research_team
+from agentos_chat.settings import get_settings
 
 scenario.configure(
     default_model=os.environ.get(
@@ -32,7 +33,7 @@ class ResearchTeamAdapter(scenario.AgentAdapter):
 
     def __init__(self) -> None:
         self.session_id = f"test-scenario-{uuid.uuid4().hex[:8]}"
-        self.team = build_research_team(session_id=self.session_id)
+        self.team = create_research_team(get_settings())
 
     async def call(
         self, input: scenario.AgentInput

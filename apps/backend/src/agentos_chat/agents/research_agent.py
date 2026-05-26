@@ -1,8 +1,6 @@
-"""Research team factory — delegates to Article Writer, then structured parse."""
+"""Research team factory — uses Agno structured output and best practices."""
 
 from __future__ import annotations
-
-import re
 
 from agno.agent import Agent
 from agno.db.postgres import PostgresDb
@@ -36,10 +34,12 @@ class ResearchResult(BaseModel):
     )
 
 
-COORDINATOR_PROMPT = """\
-You are a research assistant that helps users create, refine, and discuss \
-technical articles.
+COORDINATOR_DESCRIPTION = (
+    "You are a research assistant that helps users create, refine, "
+    "and discuss technical articles."
+)
 
+COORDINATOR_INSTRUCTIONS = """\
 You can handle several types of requests:
 
 ## 1. Create or Modify an Article
@@ -69,15 +69,28 @@ For any other message, respond helpfully.
 - Never expose raw chain-of-thought to the user.
 """
 
-WRITER_PROMPT = """\
-You are a technical article writer. You produce ONLY article content in markdown format.
+COORDINATOR_EXPECTED_OUTPUT = """\
+Return a structured ResearchResult with these fields:
+- chat_response: A friendly conversational message for the user.
+- article_markdown: The full article in markdown (empty if Q&A/summary-only).
+- article_title: The article title extracted from the H1 heading (empty if no article).
+- suggested_actions: 3-5 specific follow-up actions the user could take next \
+(empty if no article).
+"""
 
-## Rules
+WRITER_DESCRIPTION = (
+    "You are a technical article writer that produces high-quality "
+    "markdown content from research findings."
+)
+
+WRITER_INSTRUCTIONS = """\
 - Start with `# Title` — never start with conversational text.
-- NEVER include preambles like "Here is the article", "Let me write...", "Sure, I'll...", etc.
+- NEVER include preambles like "Here is the article", "Let me write...", etc.
 - Output ONLY the article markdown, nothing else.
+"""
 
-## Required Article Structure
+WRITER_EXPECTED_OUTPUT = """\
+A markdown article with this structure:
 1. `# Title` (H1 heading)
 2. `## TL;DR` — 2-3 sentence summary
 3. `## What You Will Learn Here` — bullet list of key takeaways
@@ -88,85 +101,56 @@ You are a technical article writer. You produce ONLY article content in markdown
 
 
 def create_research_team(settings: Settings) -> Team:
-    model = OpenRouter(
+    coordinator_model = OpenRouter(
         id=settings.research_agent_model,
         api_key=settings.openrouter_api_key or None,
         max_tokens=16384,
     )
+
+    writer_model_id = settings.research_writer_model or settings.research_agent_model
+    writer_model = OpenRouter(
+        id=writer_model_id,
+        api_key=settings.openrouter_api_key or None,
+        max_tokens=16384,
+    )
+
     db = PostgresDb(
         db_url=settings.database_url_sync,
         session_table="research_agno_sessions",
     )
+
     writer_agent = Agent(
         name="Article Writer",
+        description=WRITER_DESCRIPTION,
         role=(
             "Write technical articles in markdown format only. "
             "Output pure markdown, no conversational text."
         ),
-        instructions=[WRITER_PROMPT],
+        model=writer_model,
+        instructions=[WRITER_INSTRUCTIONS],
+        expected_output=WRITER_EXPECTED_OUTPUT,
     )
+
     return Team(
         name="Research Team",
-        model=model,
+        description=COORDINATOR_DESCRIPTION,
+        model=coordinator_model,
         members=[writer_agent],
         tools=[TavilyTools(api_key=settings.tavily_api_key or None, search_depth="advanced")],
-        instructions=[COORDINATOR_PROMPT],
+        instructions=[COORDINATOR_INSTRUCTIONS],
+        expected_output=COORDINATOR_EXPECTED_OUTPUT,
         markdown=True,
         db=db,
         add_history_to_context=True,
+        enable_session_summaries=True,
+        add_session_summary_to_context=True,
+        enable_user_memories=True,
+        add_memories_to_context=True,
+        retries=3,
+        delay_between_retries=1,
+        exponential_backoff=True,
+        debug_mode=settings.agno_debug,
         telemetry=settings.agno_telemetry,
-    )
-
-
-def parse_team_output(text: str, fallback_title: str = "Research") -> ResearchResult:
-    """Parse the coordinator's final text into a structured ResearchResult.
-
-    Looks for an article block (markdown starting with # heading) and separates
-    conversational text from article content.
-    """
-    if not text or not text.strip():
-        return ResearchResult(chat_response="Done.")
-
-    h1_match = re.search(r"^(#\s+.+)$", text, re.MULTILINE)
-    if not h1_match:
-        return ResearchResult(chat_response=text.strip())
-
-    article_start = h1_match.start()
-    chat_part = text[:article_start].strip()
-    article_part = text[article_start:].strip()
-
-    title = h1_match.group(1).lstrip("# ").strip()
-
-    actions: list[str] = []
-    actions_match = re.search(
-        r"(?:suggested|follow[- ]?up|next)[^:]*:\s*\n((?:\s*[-*]\s+.+\n?)+)",
-        text[article_start:],
-        re.IGNORECASE,
-    )
-    if actions_match:
-        raw = actions_match.group(1)
-        actions = [
-            line.lstrip("-* ").strip()
-            for line in raw.strip().splitlines()
-            if line.strip()
-        ][:5]
-
-    if not actions and article_part:
-        actions = [
-            "Summarize this article",
-            "Add more code examples",
-            "Add a comparison section",
-            "Expand the sources list",
-        ]
-
-    if not chat_part:
-        chat_part = f"Here is the research article on {title}."
-
-    return ResearchResult(
-        chat_response=chat_part,
-        article_markdown=article_part,
-        article_title=title or fallback_title,
-        suggested_actions=actions,
     )
 
 
@@ -183,11 +167,3 @@ def build_research_context_prompt(
     if user_message and user_message.strip() != idea.strip():
         parts.append(f"User request:\n{user_message}")
     return "\n\n".join(parts)
-
-
-def build_research_team(session_id: str | None = None) -> Team:
-    """Backward-compatible factory; session_id is passed per arun() call instead."""
-    from agentos_chat.settings import get_settings
-
-    _ = session_id
-    return create_research_team(get_settings())

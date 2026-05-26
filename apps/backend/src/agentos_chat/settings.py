@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     agno_telemetry: bool = False
     agent_model: str = "openrouter/google/gemini-2.0-flash-001"
     research_agent_model: str = "deepseek/deepseek-v4-flash:nitro"
+    research_writer_model: str = ""
+    agno_debug: bool = False
     request_timeout_seconds: int = 60
     research_timeout_seconds: int = 300
     langwatch_api_key: str = ""
